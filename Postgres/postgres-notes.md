@@ -783,3 +783,559 @@ ADD CONSTRAINT fk_order FOREIGN KEY (order_id) REFERENCES orders(order_id);
     -   `NOT NULL`, `UNIQUE`, `PRIMARY KEY`, `FOREIGN KEY`, `CHECK`, `DEFAULT`.
 
 * * * * *
+
+* * * * *
+
+### **1\. FLOAT Data Type**
+
+In PostgreSQL, the `FLOAT` data type is used to store floating-point numbers. It is an approximate numeric type, meaning it is not 100% precise due to the way floating-point numbers are stored in memory.
+
+There are two types of floating-point data types:
+
+-   **`REAL`**: Single precision floating-point number (4 bytes).
+
+-   **`DOUBLE PRECISION`**: Double precision floating-point number (8 bytes).
+
+#### Example:
+
+```
+CREATE TABLE measurements (
+    measurement_id SERIAL PRIMARY KEY,
+    temperature REAL,   -- Single precision
+    pressure DOUBLE PRECISION  -- Double precision
+);
+
+```
+
+-   **`REAL`** allows you to store floating-point values with **6 digits of precision**.
+
+-   **`DOUBLE PRECISION`** allows you to store floating-point values with **15 digits of precision**.
+
+* * * * *
+
+### **2\. DECIMAL (NUMERIC) Data Type and Precision**
+
+The `DECIMAL` or `NUMERIC` data type is used for exact numeric values with a specified **precision** (total number of digits) and **scale** (number of digits to the right of the decimal point). Unlike `FLOAT`, `DECIMAL` stores numbers exactly and is often used for financial calculations where precision is important.
+
+-   **Precision**: The total number of digits in the number (both to the left and right of the decimal point).
+
+-   **Scale**: The number of digits after the decimal point.
+
+#### Syntax:
+
+```
+DECIMAL(precision, scale)
+
+```
+
+-   **`precision`**: The total number of digits in the number.
+
+-   **`scale`**: The number of digits after the decimal point.
+
+For example, `DECIMAL(10, 2)` means a number with **10 total digits**, of which **2 digits are after the decimal point**.
+
+#### Example:
+
+```
+CREATE TABLE transactions (
+    transaction_id SERIAL PRIMARY KEY,
+    amount DECIMAL(10, 2)  -- Precision = 10, Scale = 2
+);
+
+```
+
+Here, `amount` can store numbers up to **10 digits**, with **2 digits after the decimal point**. So, you could store values like:
+
+-   `12345678.90`
+
+-   `99999999.99`
+
+-   `0.99`
+
+But **it cannot store**:
+
+-   `123456789.01` (too many digits before the decimal point)
+
+-   `12345.123` (too many digits after the decimal point)
+
+#### More Examples:
+
+-   `DECIMAL(5, 2)` could store `123.45` (3 digits before the decimal point, 2 digits after the decimal point).
+
+-   `DECIMAL(6, 3)` could store `123.456` (3 digits before the decimal point, 3 digits after the decimal point).
+
+-   `DECIMAL(10, 0)` could store `1234567890` (no digits after the decimal point).
+
+### **Precision Example with Data Insertion:**
+
+If you insert a value that exceeds the scale (number of digits after the decimal point), PostgreSQL will round the value to fit within the defined precision and scale.
+
+#### Example of Inserting Data:
+
+```
+INSERT INTO transactions (amount) VALUES (123.456);
+
+```
+
+Since `DECIMAL(10, 2)` only allows **2 digits after the decimal point**, this will be rounded to:
+
+```
+123.46
+
+```
+
+#### Example of Inserting a Large Value:
+
+```
+INSERT INTO transactions (amount) VALUES (123456789.01);
+
+```
+
+Since `DECIMAL(10, 2)` can only hold **10 digits** (including the digits before and after the decimal point), this will **fail** with an error because it exceeds the allowed number of digits.
+
+* * * * *
+
+### **Summary**
+
+-   **`FLOAT` Data Type**: Used for storing approximate numeric values (single or double precision). It stores floating-point numbers, which may not be perfectly precise.
+
+-   **`DECIMAL (NUMERIC)` Data Type**: Used for storing exact numeric values with defined precision and scale. It is preferred for financial data where precision is essential.
+
+    -   **Precision** defines the total number of digits.
+
+    -   **Scale** defines how many digits come after the decimal point.
+
+    
+---
+
+### **1. INSERT INTO (0:55:55)**
+
+The **`INSERT INTO`** command is used to insert new records into a table in a PostgreSQL database. It's one of the most commonly used SQL commands.
+
+#### Syntax:
+```sql
+INSERT INTO table_name (column1, column2, column3, ...)
+VALUES (value1, value2, value3, ...);
+```
+
+- **`table_name`**: The name of the table where you want to insert data.
+- **`column1, column2, ...`**: The list of columns you want to insert data into.
+- **`value1, value2, ...`**: The corresponding values for each column.
+
+If you’re inserting values for every column, you don’t need to specify the column names. However, it’s a good practice to do so, especially when the table has a lot of columns or if you’re leaving certain columns empty (e.g., `NULL`).
+
+#### Example:
+```sql
+INSERT INTO users (name, email, created_at)
+VALUES ('John Doe', 'john.doe@example.com', CURRENT_TIMESTAMP);
+```
+
+This command inserts a new row into the `users` table with `name`, `email`, and `created_at` values.
+
+---
+
+### **2. INSERT INTO Example (0:59:14)**
+
+Here’s a more concrete example with a full database table:
+
+#### Table Structure:
+```sql
+CREATE TABLE employees (
+    employee_id SERIAL PRIMARY KEY,
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    hire_date DATE,
+    salary DECIMAL(10, 2)
+);
+```
+
+Now, to insert data into the `employees` table:
+```sql
+INSERT INTO employees (first_name, last_name, hire_date, salary)
+VALUES ('Alice', 'Smith', '2022-01-15', 55000.00);
+```
+
+This command will insert a new record for Alice Smith with a hire date of `2022-01-15` and a salary of `55000.00`.
+
+#### Sample Result:
+If the insert is successful, PostgreSQL will not return any output but will indicate that the command was successful:
+```
+INSERT 0 1
+```
+This means one row was inserted.
+
+---
+
+### **3. Generate 1000 Rows with Mockaroo (1:02:36)**
+
+Mockaroo is a tool used to generate large datasets for testing purposes. It allows you to create CSVs, SQL insert statements, and more. You can use Mockaroo to generate 1000 rows of data for a table, then use the generated SQL insert statements in your PostgreSQL database.
+
+#### Steps:
+1. Go to [Mockaroo](https://mockaroo.com/).
+2. Select the type of data you need (e.g., names, addresses, dates, etc.).
+3. Specify the number of rows (1000 in this case).
+4. Select the **SQL** format to generate the `INSERT INTO` statements.
+5. Copy the generated SQL and paste it into your PostgreSQL query tool.
+
+For example, Mockaroo might generate SQL like:
+```sql
+INSERT INTO employees (first_name, last_name, hire_date, salary)
+VALUES
+('John', 'Doe', '2023-01-01', 60000.00),
+('Jane', 'Smith', '2022-05-22', 70000.00),
+-- 998 more rows
+;
+```
+
+---
+
+### **4. SELECT FROM (1:12:28)**
+
+The **`SELECT`** statement is used to retrieve data from a database. It is the most commonly used SQL query.
+
+#### Syntax:
+```sql
+SELECT column1, column2, ...
+FROM table_name;
+```
+
+- **`column1, column2, ...`**: The columns you want to select. You can use `*` to select all columns.
+- **`FROM table_name`**: The table from which to retrieve the data.
+
+#### Example:
+```sql
+SELECT first_name, last_name
+FROM employees;
+```
+
+This retrieves the `first_name` and `last_name` columns from the `employees` table.
+
+#### Sample Result:
+```
+ first_name | last_name
+------------+-----------
+ John       | Doe
+ Jane       | Smith
+ ...
+```
+
+---
+
+### **5. ORDER BY (1:15:18)**
+
+The **`ORDER BY`** clause is used to sort the result set by one or more columns. By default, it sorts in ascending order (from lowest to highest). You can also specify **descending** order with `DESC`.
+
+#### Syntax:
+```sql
+SELECT column1, column2
+FROM table_name
+ORDER BY column1 [ASC|DESC];
+```
+
+#### Example:
+```sql
+SELECT first_name, salary
+FROM employees
+ORDER BY salary DESC;
+```
+
+This retrieves the `first_name` and `salary` of employees and sorts them by `salary` in **descending** order.
+
+#### Sample Result:
+```
+ first_name | salary
+------------+--------
+ Jane       | 80000
+ Alice      | 75000
+ John       | 60000
+ ...
+```
+
+---
+
+### **6. DISTINCT (1:19:53)**
+
+The **`DISTINCT`** keyword is used to remove duplicate records from the result set.
+
+#### Syntax:
+```sql
+SELECT DISTINCT column1, column2
+FROM table_name;
+```
+
+#### Example:
+```sql
+SELECT DISTINCT first_name
+FROM employees;
+```
+
+This returns a list of unique first names from the `employees` table, removing any duplicates.
+
+#### Sample Result:
+```
+ first_name
+------------
+ John
+ Jane
+ Alice
+ ...
+```
+
+---
+
+### **7. WHERE Clause and AND (1:21:59)**
+
+The **`WHERE`** clause is used to filter records based on specific conditions. The **`AND`** operator allows you to combine multiple conditions.
+
+#### Syntax:
+```sql
+SELECT column1, column2
+FROM table_name
+WHERE condition1 AND condition2;
+```
+
+#### Example:
+```sql
+SELECT first_name, salary
+FROM employees
+WHERE salary > 60000 AND hire_date < '2023-01-01';
+```
+
+This selects employees with a salary greater than 60,000 and who were hired before January 1, 2023.
+
+#### Sample Result:
+```
+ first_name | salary
+------------+--------
+ Jane       | 70000
+ ...
+```
+
+---
+
+### **8. Comparison Operators (1:25:29)**
+
+Comparison operators are used to compare values in SQL. Common operators include:
+- **`=`**: Equal to
+- **`<>`** or **`!=`**: Not equal to
+- **`>`**: Greater than
+- **`<`**: Less than
+- **`>=`**: Greater than or equal to
+- **`<=`**: Less than or equal to
+
+#### Syntax:
+```sql
+SELECT column1, column2
+FROM table_name
+WHERE column1 > value;
+```
+
+#### Example:
+```sql
+SELECT first_name, salary
+FROM employees
+WHERE salary >= 60000;
+```
+
+This will return employees whose salary is greater than or equal to 60,000.
+
+#### Sample Result:
+```
+ first_name | salary
+------------+--------
+ Jane       | 70000
+ Alice      | 75000
+ ...
+```
+
+---
+
+### **Exam Power-ups for Memory:**
+
+- **INSERT INTO**: Always specify the table columns to avoid errors, especially if the table has default values or constraints.
+- **SELECT**: Be aware of using `DISTINCT` when you want unique results; it can help you clean up duplicate data.
+- **ORDER BY**: Default is ascending order; always specify `DESC` if you want descending order.
+- **WHERE**: Use **AND/OR** to combine multiple conditions and **comparison operators** to filter data precisely.
+
+---
+
+* * * * *
+
+### **1\. `SERIAL` and `BIGSERIAL` (Auto-Incrementing Keys)**
+
+In PostgreSQL, **`SERIAL`** and **`BIGSERIAL`** are used to create auto-incrementing integer columns, often used as **primary keys**. These data types allow you to automatically generate unique identifiers for each row without needing to manually specify the value.
+
+#### **`SERIAL`**:
+
+-   **`SERIAL`** is used to create auto-incrementing integer columns, with a range of **1 to 2,147,483,647**.
+
+-   It creates an **integer** column (`INT`) that automatically increments with each new row inserted.
+
+-   The `SERIAL` type uses a **sequence** to generate the next available number.
+
+#### Syntax:
+
+```
+column_name SERIAL
+
+```
+
+#### **`BIGSERIAL`**:
+
+-   **`BIGSERIAL`** is similar to **`SERIAL`**, but it uses a **`BIGINT`** data type (8 bytes) for larger values, with a range of **1 to 9,223,372,036,854,775,807**.
+
+-   It's typically used when you expect to insert a very large number of records into the table.
+
+#### Syntax:
+
+```
+column_name BIGSERIAL
+
+```
+
+### **Example Table with `SERIAL` and `BIGSERIAL`**
+
+#### Using `SERIAL` for a Primary Key:
+
+```
+CREATE TABLE users (
+    user_id SERIAL PRIMARY KEY,
+    name VARCHAR(100),
+    email VARCHAR(100)
+);
+
+```
+
+Here, `user_id` will automatically increment with each new row inserted.
+
+#### Using `BIGSERIAL` for a Primary Key:
+
+```
+CREATE TABLE products (
+    product_id BIGSERIAL PRIMARY KEY,
+    product_name VARCHAR(100),
+    price DECIMAL(10, 2)
+);
+
+```
+
+In this case, `product_id` will be a **BIGINT** and auto-increment with each new product inserted.
+
+* * * * *
+
+### **2\. `UUID` as a Primary Key**
+
+The **`UUID`** (Universally Unique Identifier) data type is an alternative to **`SERIAL`** and **`BIGSERIAL`** for generating unique keys. UUIDs are particularly useful when you need globally unique identifiers that can be generated on different systems or across distributed databases.
+
+A **UUID** is a 128-bit number, represented as a 32-character hexadecimal string, which ensures uniqueness even across different systems and databases. UUIDs are **not sequential** like `SERIAL` and `BIGSERIAL`, but they can be generated in a variety of ways, including using system clocks, random data, or hashes.
+
+#### Syntax:
+
+```
+column_name UUID DEFAULT uuid_generate_v4()
+
+```
+
+Here, **`uuid_generate_v4()`** generates a random UUID using version 4 of the UUID standard (based on random numbers).
+
+#### Example Table with `UUID`:
+
+```
+CREATE TABLE customers (
+    customer_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(100),
+    email VARCHAR(100)
+);
+
+```
+
+In this example, each `customer_id` is generated as a **random UUID** automatically when a new row is inserted.
+
+#### Generating UUIDs:
+
+To generate a **UUID** in PostgreSQL, you need to have the **`uuid-ossp`** extension installed. You can do this with:
+
+```
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+```
+
+Then, you can use functions like:
+
+-   `uuid_generate_v4()` --- Generates a random UUID.
+
+-   `uuid_generate_v1()` --- Generates a UUID based on the timestamp and MAC address.
+
+* * * * *
+
+### **3\. Starting from a Custom Serial**
+
+Sometimes, you may want to start the auto-incrementing sequence at a number other than 1 (e.g., you might want it to start from 1000 or any other custom value). PostgreSQL allows you to set the **starting value** of the sequence.
+
+To achieve this, you can use the `ALTER SEQUENCE` command after creating the table or sequence.
+
+#### Example: Creating a Table with a Custom Serial Start
+
+Let's say you want the `user_id` to start at 1000 instead of 1. Here's how you can do it:
+
+1.  **Create the table with `SERIAL`**:
+
+```
+CREATE TABLE users (
+    user_id SERIAL PRIMARY KEY,
+    name VARCHAR(100),
+    email VARCHAR(100)
+);
+
+```
+
+1.  **Set the starting value of the sequence**:
+
+PostgreSQL automatically creates a sequence for `SERIAL` columns. You can alter it to set the starting value.
+
+```
+ALTER SEQUENCE users_user_id_seq RESTART WITH 1000;
+
+```
+
+-   `users_user_id_seq` is the automatically created sequence for the `user_id` column in the `users` table.
+
+-   `RESTART WITH 1000` sets the next value of the sequence to 1000.
+
+#### Verifying the Starting Value:
+
+To check the current value of the sequence:
+
+```
+SELECT last_value FROM users_user_id_seq;
+
+```
+
+After running the above `ALTER` command, this query should return `1000` as the next value.
+
+* * * * *
+
+### **Example Summary**:
+
+-   **Using `SERIAL`**: Automatically increments with integer values starting from 1.
+
+-   **Using `BIGSERIAL`**: Automatically increments with large integer values, starting from 1.
+
+-   **Using `UUID`**: Uses a globally unique identifier, generated randomly, and often used for distributed systems.
+
+-   **Custom Serial Start**: Use `ALTER SEQUENCE` to set a custom starting point for an auto-incrementing `SERIAL` or `BIGSERIAL` column.
+
+* * * * *
+
+### **Exam Power-ups for Memory:**
+
+-   **`SERIAL`**: Remember, `SERIAL` is an auto-incrementing integer type that is automatically tied to a sequence, with a range of **1 to 2,147,483,647**.
+
+-   **`BIGSERIAL`**: Use **`BIGSERIAL`** for large datasets when the range of `SERIAL` might be exceeded.
+
+-   **`UUID`**: Use **`UUID`** when you need globally unique identifiers, especially useful in distributed systems or when you don't want sequential IDs.
+
+-   **Custom Serial Start**: To start a `SERIAL` sequence at a custom value, use `ALTER SEQUENCE sequence_name RESTART WITH <custom_value>`.
+
+* * * * *
+    
