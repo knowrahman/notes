@@ -1339,3 +1339,2603 @@ After running the above `ALTER` command, this query should return `1000` as the 
 
 * * * * *
     
+
+
+* * * * *
+
+### **1\. LIMIT, OFFSET & FETCH (1:29:35)**
+
+These SQL clauses are used to control the number of rows returned in a query, which is especially useful for pagination or when you only need a subset of data.
+
+#### **LIMIT**:
+
+The **`LIMIT`** clause is used to specify the maximum number of rows to return.
+
+#### Syntax:
+
+```
+SELECT column1, column2
+FROM table_name
+LIMIT number_of_rows;
+
+```
+
+#### Example:
+
+```
+SELECT first_name, last_name
+FROM employees
+LIMIT 5;
+
+```
+
+This query returns the first 5 rows of the `employees` table.
+
+#### **OFFSET**:
+
+The **`OFFSET`** clause is used to specify the number of rows to skip before starting to return rows. This is useful for pagination, where you might want to skip a certain number of rows based on the current page.
+
+#### Syntax:
+
+```
+SELECT column1, column2
+FROM table_name
+OFFSET number_of_rows;
+
+```
+
+#### Example:
+
+```
+SELECT first_name, last_name
+FROM employees
+OFFSET 5 LIMIT 5;
+
+```
+
+This skips the first 5 rows and then returns the next 5 rows. Essentially, it is fetching the 6th to the 10th rows.
+
+#### **FETCH**:
+
+**`FETCH`** is part of the SQL standard for controlling pagination and is often used with the **`OFFSET`** clause. It's more explicit than using `LIMIT` and provides more readability in SQL queries.
+
+#### Syntax:
+
+```
+SELECT column1, column2
+FROM table_name
+OFFSET number_of_rows
+FETCH FIRST number_of_rows ROWS ONLY;
+
+```
+
+#### Example:
+
+```
+SELECT first_name, last_name
+FROM employees
+OFFSET 5 FETCH FIRST 5 ROWS ONLY;
+
+```
+
+This query skips the first 5 rows and returns the next 5 rows, similar to the `OFFSET` + `LIMIT` combination.
+
+#### Sample Result:
+
+For `LIMIT 5`:
+
+```
+ first_name | last_name
+------------+-----------
+ Alice      | Smith
+ Bob        | Johnson
+ Charlie    | Brown
+ David      | Lee
+ Eve        | White
+
+```
+
+* * * * *
+
+### **2\. IN (1:32:43)**
+
+The **`IN`** operator is used to check if a value matches any value within a list of values. It simplifies multiple **`OR`** conditions.
+
+#### Syntax:
+
+```
+SELECT column1, column2
+FROM table_name
+WHERE column1 IN (value1, value2, value3, ...);
+
+```
+
+#### Example:
+
+```
+SELECT first_name, department
+FROM employees
+WHERE department IN ('Sales', 'Marketing', 'HR');
+
+```
+
+This will return employees whose department is either **Sales**, **Marketing**, or **HR**.
+
+#### Sample Result:
+
+```
+ first_name | department
+------------+------------
+ John       | Sales
+ Jane       | Marketing
+ Alice      | HR
+
+```
+
+#### Notes:
+
+-   **`IN`** can be used with numbers, strings, dates, and other data types.
+
+-   It can also be used with a subquery:
+
+```
+SELECT name
+FROM products
+WHERE category_id IN (SELECT category_id FROM categories WHERE active = TRUE);
+
+```
+
+* * * * *
+
+### **3\. BETWEEN (1:35:43)**
+
+The **`BETWEEN`** operator is used to filter the result set within a certain range. It is inclusive, meaning it includes the boundary values.
+
+#### Syntax:
+
+```
+SELECT column1, column2
+FROM table_name
+WHERE column1 BETWEEN value1 AND value2;
+
+```
+
+#### Example:
+
+```
+SELECT first_name, hire_date
+FROM employees
+WHERE hire_date BETWEEN '2022-01-01' AND '2023-01-01';
+
+```
+
+This query retrieves employees who were hired between January 1, 2022, and January 1, 2023, including those dates.
+
+#### Sample Result:
+
+```
+ first_name | hire_date
+------------+------------
+ Alice      | 2022-03-15
+ Bob        | 2022-06-20
+ Charlie    | 2022-11-30
+
+```
+
+#### Notes:
+
+-   **`BETWEEN`** can be used with numeric, date, and time ranges.
+
+-   **`BETWEEN`** is inclusive, so it includes both the start and end values.
+
+* * * * *
+
+### **4\. LIKE and ILIKE (1:37:45)**
+
+The **`LIKE`** operator is used for pattern matching in string columns. It allows you to find records that match a specified pattern.
+
+#### **`LIKE`**:
+
+By default, **`LIKE`** is case-sensitive. It uses two wildcard characters:
+
+-   **`%`**: Represents zero or more characters.
+
+-   **`_`**: Represents a single character.
+
+#### Syntax:
+
+```
+SELECT column1, column2
+FROM table_name
+WHERE column1 LIKE pattern;
+
+```
+
+#### Example:
+
+```
+SELECT first_name, last_name
+FROM employees
+WHERE first_name LIKE 'J%';
+
+```
+
+This query will return all employees whose first name starts with "J" (e.g., John, Jane, Jack).
+
+#### Sample Result:
+
+```
+ first_name | last_name
+------------+-----------
+ John       | Doe
+ Jane       | Smith
+ Jack       | Brown
+
+```
+
+#### **`ILIKE`**:
+
+The **`ILIKE`** operator is similar to **`LIKE`**, but it is **case-insensitive**, which means it will match patterns regardless of uppercase or lowercase letters.
+
+#### Syntax:
+
+```
+SELECT column1, column2
+FROM table_name
+WHERE column1 ILIKE pattern;
+
+```
+
+#### Example:
+
+```
+SELECT first_name, last_name
+FROM employees
+WHERE first_name ILIKE 'j%';
+
+```
+
+This query will return all employees whose first name starts with **'j'** or **'J'**.
+
+#### Sample Result:
+
+```
+ first_name | last_name
+------------+-----------
+ John       | Doe
+ Jane       | Smith
+ Jack       | Brown
+
+```
+
+* * * * *
+
+### **Summary of Concepts**
+
+-   **`LIMIT`, `OFFSET`, and `FETCH`**: These clauses are used to control the number of rows returned by a query. `LIMIT` specifies the max number of rows, `OFFSET` skips a certain number of rows, and `FETCH` is used for standard pagination.
+
+-   **`IN`**: A shorthand for multiple `OR` conditions, it checks if a value is within a set of specified values.
+
+-   **`BETWEEN`**: Filters data within a specified range, including the boundary values.
+
+-   **`LIKE` and `ILIKE`**: Used for pattern matching in strings. `LIKE` is case-sensitive, while `ILIKE` is case-insensitive.
+
+* * * * *
+
+### **Exam Power-ups for Memory:**
+
+-   **`LIMIT`**: Useful for pagination. Always remember that `LIMIT` alone won't skip any rows --- you need `OFFSET` for skipping.
+
+-   **`IN`**: Great for checking against a list of values. It can also be used with subqueries.
+
+-   **`BETWEEN`**: Remember, `BETWEEN` is inclusive, so it includes both the start and end values.
+
+-   **`LIKE`**: Use `%` for any number of characters and `_` for a single character in pattern matching.
+
+-   **`ILIKE`**: Use **`ILIKE`** for case-insensitive pattern matching in PostgreSQL.
+
+* * * * *
+
+
+### **What Are Aggregate Functions?**
+
+Aggregate functions perform a calculation on a set of values and return a single value. They are typically used in conjunction with the **`GROUP BY`** clause to group rows based on certain columns and then apply an aggregate function to each group.
+
+Here are the most commonly used aggregate functions in PostgreSQL:
+
+* * * * *
+
+### **1\. COUNT()**
+
+The **`COUNT()`** function returns the number of rows that match a specified condition. It can also be used with `DISTINCT` to count unique values.
+
+#### Syntax:
+
+```
+SELECT COUNT(column_name)
+FROM table_name;
+
+```
+
+#### Example 1: Count the Total Number of Employees
+
+```
+SELECT COUNT(*)
+FROM employees;
+
+```
+
+This returns the total number of rows in the `employees` table.
+
+#### Sample Result:
+
+```
+ count
+-------
+ 100
+
+```
+
+#### Example 2: Count Distinct Salaries
+
+```
+SELECT COUNT(DISTINCT salary)
+FROM employees;
+
+```
+
+This returns the number of distinct salary values in the `employees` table.
+
+#### Sample Result:
+
+```
+ count
+-------
+ 15
+
+```
+
+* * * * *
+
+### **2\. SUM()**
+
+The **`SUM()`** function calculates the total sum of a numeric column.
+
+#### Syntax:
+
+```
+SELECT SUM(column_name)
+FROM table_name;
+
+```
+
+#### Example 1: Total Salary Expense
+
+```
+SELECT SUM(salary)
+FROM employees;
+
+```
+
+This returns the total sum of the `salary` column in the `employees` table.
+
+#### Sample Result:
+
+```
+ sum
+------
+ 500000
+
+```
+
+#### Example 2: Total Sales Amount
+
+```
+SELECT SUM(sales_amount)
+FROM sales;
+
+```
+
+This returns the total sales amount from the `sales` table.
+
+#### Sample Result:
+
+```
+ sum
+------
+ 1200000
+
+```
+
+* * * * *
+
+### **3\. AVG()**
+
+The **`AVG()`** function returns the average value of a numeric column.
+
+#### Syntax:
+
+```
+SELECT AVG(column_name)
+FROM table_name;
+
+```
+
+#### Example 1: Average Salary
+
+```
+SELECT AVG(salary)
+FROM employees;
+
+```
+
+This returns the average salary of all employees.
+
+#### Sample Result:
+
+```
+ avg
+------
+ 50000
+
+```
+
+#### Example 2: Average Product Price
+
+```
+SELECT AVG(price)
+FROM products;
+
+```
+
+This returns the average price of products in the `products` table.
+
+#### Sample Result:
+
+```
+ avg
+------
+ 25.75
+
+```
+
+* * * * *
+
+### **4\. MIN()**
+
+The **`MIN()`** function returns the smallest value in a column.
+
+#### Syntax:
+
+```
+SELECT MIN(column_name)
+FROM table_name;
+
+```
+
+#### Example 1: Minimum Salary
+
+```
+SELECT MIN(salary)
+FROM employees;
+
+```
+
+This returns the minimum salary in the `employees` table.
+
+#### Sample Result:
+
+```
+ min
+-----
+ 30000
+
+```
+
+#### Example 2: Minimum Product Price
+
+```
+SELECT MIN(price)
+FROM products;
+
+```
+
+This returns the minimum price of products in the `products` table.
+
+#### Sample Result:
+
+```
+ min
+-----
+ 5.00
+
+```
+
+* * * * *
+
+### **5\. MAX()**
+
+The **`MAX()`** function returns the largest value in a column.
+
+#### Syntax:
+
+```
+SELECT MAX(column_name)
+FROM table_name;
+
+```
+
+#### Example 1: Maximum Salary
+
+```
+SELECT MAX(salary)
+FROM employees;
+
+```
+
+This returns the highest salary in the `employees` table.
+
+#### Sample Result:
+
+```
+ max
+-----
+ 120000
+
+```
+
+#### Example 2: Maximum Product Price
+
+```
+SELECT MAX(price)
+FROM products;
+
+```
+
+This returns the highest price of products in the `products` table.
+
+#### Sample Result:
+
+```
+ max
+-----
+ 100.00
+
+```
+
+* * * * *
+
+### **6\. VARIANCE()**
+
+The **`VARIANCE()`** function calculates the variance of a numeric column. Variance measures the spread of numbers around the mean. It is useful in statistical analysis.
+
+#### Syntax:
+
+```
+SELECT VARIANCE(column_name)
+FROM table_name;
+
+```
+
+#### Example 1: Variance in Salaries
+
+```
+SELECT VARIANCE(salary)
+FROM employees;
+
+```
+
+This calculates the variance in the `salary` column in the `employees` table.
+
+#### Sample Result:
+
+```
+ variance
+----------
+ 10000000
+
+```
+
+* * * * *
+
+### **7\. STDDEV()**
+
+The **`STDDEV()`** function calculates the standard deviation, which is the square root of the variance. It shows how much variation exists from the average.
+
+#### Syntax:
+
+```
+SELECT STDDEV(column_name)
+FROM table_name;
+
+```
+
+#### Example 1: Standard Deviation of Salaries
+
+```
+SELECT STDDEV(salary)
+FROM employees;
+
+```
+
+This calculates the standard deviation of salaries in the `employees` table.
+
+#### Sample Result:
+
+```
+ stddev
+--------
+ 3162.28
+
+```
+
+* * * * *
+
+### **8\. STRING_AGG()**
+
+The **`STRING_AGG()`** function is used to concatenate values from multiple rows into a single string, separated by a delimiter.
+
+#### Syntax:
+
+```
+SELECT STRING_AGG(column_name, 'delimiter')
+FROM table_name;
+
+```
+
+#### Example 1: Concatenate All Employee Names
+
+```
+SELECT STRING_AGG(first_name, ', ')
+FROM employees;
+
+```
+
+This concatenates all employee first names in the `employees` table, separated by a comma.
+
+#### Sample Result:
+
+```
+ John, Jane, Alice, Bob, ...
+
+```
+
+* * * * *
+
+### **9\. ARRAY_AGG()**
+
+The **`ARRAY_AGG()`** function returns the values of a column as an array.
+
+#### Syntax:
+
+```
+SELECT ARRAY_AGG(column_name)
+FROM table_name;
+
+```
+
+#### Example 1: Array of Employee Names
+
+```
+SELECT ARRAY_AGG(first_name)
+FROM employees;
+
+```
+
+This returns an array containing the names of all employees.
+
+#### Sample Result:
+
+```
+{John, Jane, Alice, Bob, ...}
+
+```
+
+* * * * *
+
+### **10\. COUNT(*) vs COUNT(column_name)**
+
+-   **`COUNT(*)`**: Counts the total number of rows, including those with `NULL` values.
+
+-   **`COUNT(column_name)`**: Counts the non-`NULL` values in a specific column.
+
+#### Example 1: COUNT(*) (Counting all rows)
+
+```
+SELECT COUNT(*)
+FROM employees;
+
+```
+
+This counts all rows in the `employees` table, regardless of `NULL` values.
+
+#### Sample Result:
+
+```
+ count
+-------
+ 100
+
+```
+
+#### Example 2: COUNT(column_name) (Counting non-NULL values)
+
+```
+SELECT COUNT(salary)
+FROM employees;
+
+```
+
+This counts the number of non-`NULL` salary values.
+
+#### Sample Result:
+
+```
+ count
+-------
+ 95
+
+```
+
+* * * * *
+
+### **Summary of Aggregate Functions**
+
+-   **`COUNT()`**: Counts rows or non-`NULL` values.
+
+-   **`SUM()`**: Sums numeric values.
+
+-   **`AVG()`**: Calculates the average of numeric values.
+
+-   **`MIN()`**: Returns the smallest value.
+
+-   **`MAX()`**: Returns the largest value.
+
+-   **`VARIANCE()`**: Calculates the variance.
+
+-   **`STDDEV()`**: Calculates the standard deviation.
+
+-   **`STRING_AGG()`**: Concatenates values from multiple rows into a single string.
+
+-   **`ARRAY_AGG()`**: Returns values as an array.
+
+* * * * *
+
+### **Exam Power-ups for Memory:**
+
+-   **`COUNT(*)` vs `COUNT(column)`**: **`COUNT(*)`** counts all rows, while **`COUNT(column)`** counts non-`NULL` values in a specific column.
+
+-   **`SUM()`**, **`AVG()`**, **`MIN()`**, **`MAX()`**: Used to perform basic statistical operations like summing, averaging, or finding the extreme values in a dataset.
+
+-   **`VARIANCE()`** and **`STDDEV()`**: Used for statistical analysis, showing the spread or variation in a dataset.
+
+-   **`STRING_AGG()`** and **`ARRAY_AGG()`**: Useful for string concatenation or aggregating values into arrays.
+
+* * * * *
+
+
+* * * * *
+
+### **What is `GROUP BY`?**
+
+The **`GROUP BY`** clause is used in SQL to arrange identical data into groups. It is commonly used with aggregate functions (such as `COUNT()`, `SUM()`, `AVG()`, `MIN()`, `MAX()`) to perform calculations on each group of data, rather than on the entire result set.
+
+**`GROUP BY`** allows you to summarize or aggregate data based on one or more columns. It is typically used when you want to:
+
+-   Perform aggregate calculations on data within specific groups.
+
+-   Organize results into categories, such as grouping sales by region, or employees by department.
+
+### **Syntax of `GROUP BY`**
+
+```
+SELECT column1, aggregate_function(column2)
+FROM table_name
+GROUP BY column1;
+
+```
+
+-   **`column1`**: The column(s) you want to group by.
+
+-   **`aggregate_function(column2)`**: The aggregate function you want to apply to another column (e.g., `COUNT()`, `SUM()`, `AVG()`, etc.).
+
+-   **`table_name`**: The name of the table you're querying.
+
+* * * * *
+
+### **Using `GROUP BY` with Aggregate Functions**
+
+When you use `GROUP BY`, you typically combine it with aggregate functions to summarize data.
+
+#### **1\. COUNT() Example**
+
+Let's start with a basic example using **`COUNT()`**. This counts the number of rows in each group.
+
+##### Example: Counting Employees by Department
+
+```
+SELECT department, COUNT(*)
+FROM employees
+GROUP BY department;
+
+```
+
+In this example:
+
+-   The query groups the data by `department`.
+
+-   The `COUNT(*)` function counts how many employees are in each department.
+
+#### Sample Result:
+
+```
+ department  | count
+-------------+-------
+ Sales       | 10
+ Marketing   | 5
+ HR          | 3
+
+```
+
+The result shows the number of employees in each department.
+
+* * * * *
+
+#### **2\. SUM() Example**
+
+You can also use **`SUM()`** to calculate the total of a numeric column for each group.
+
+##### Example: Total Salary Expense by Department
+
+```
+SELECT department, SUM(salary)
+FROM employees
+GROUP BY department;
+
+```
+
+In this case:
+
+-   The query groups the data by `department`.
+
+-   The `SUM(salary)` function calculates the total salary for each department.
+
+#### Sample Result:
+
+```
+ department  | sum
+-------------+--------
+ Sales       | 800000
+ Marketing   | 250000
+ HR          | 150000
+
+```
+
+This result shows the total salary expense for each department.
+
+* * * * *
+
+#### **3\. AVG() Example**
+
+The **`AVG()`** function is used to find the average value of a column for each group.
+
+##### Example: Average Salary by Department
+
+```
+SELECT department, AVG(salary)
+FROM employees
+GROUP BY department;
+
+```
+
+This query:
+
+-   Groups the employees by their `department`.
+
+-   Calculates the average salary within each department.
+
+#### Sample Result:
+
+```
+ department  | avg
+-------------+------
+ Sales       | 80000
+ Marketing   | 50000
+ HR          | 50000
+
+```
+
+This shows the average salary for each department.
+
+* * * * *
+
+#### **4\. MIN() and MAX() Example**
+
+You can use the **`MIN()`** and **`MAX()`** functions to find the smallest or largest value in a group.
+
+##### Example 1: Minimum Salary by Department
+
+```
+SELECT department, MIN(salary)
+FROM employees
+GROUP BY department;
+
+```
+
+##### Example 2: Maximum Salary by Department
+
+```
+SELECT department, MAX(salary)
+FROM employees
+GROUP BY department;
+
+```
+
+Both queries:
+
+-   Group the employees by `department`.
+
+-   Return the minimum or maximum salary within each department.
+
+#### Sample Result:
+
+```
+ department  | min | max
+-------------+-----+------
+ Sales       | 50000 | 120000
+ Marketing   | 40000 | 70000
+ HR          | 35000 | 50000
+
+```
+
+The result shows the lowest and highest salary in each department.
+
+* * * * *
+
+### **Using `GROUP BY` with Multiple Columns**
+
+You can group by multiple columns by separating the column names with commas. This is useful when you want to group by combinations of fields.
+
+##### Example: Grouping by Department and Job Title
+
+```
+SELECT department, job_title, COUNT(*)
+FROM employees
+GROUP BY department, job_title;
+
+```
+
+This query:
+
+-   Groups the data by both `department` and `job_title`.
+
+-   Uses `COUNT(*)` to count how many employees hold each job title within each department.
+
+#### Sample Result:
+
+```
+ department  | job_title | count
+-------------+-----------+------
+ Sales       | Manager   | 2
+ Sales       | Associate | 8
+ Marketing   | Manager   | 2
+ HR          | Associate | 3
+
+```
+
+This result shows the count of employees grouped by both their department and job title.
+
+* * * * *
+
+### **`GROUP BY` with `HAVING`**
+
+The **`HAVING`** clause is used to filter the results after the `GROUP BY` has been applied. It works like the `WHERE` clause but for groups.
+
+#### Example 1: Filtering Groups Using `HAVING`
+
+```
+SELECT department, AVG(salary)
+FROM employees
+GROUP BY department
+HAVING AVG(salary) > 50000;
+
+```
+
+In this query:
+
+-   We group by `department`.
+
+-   We use `AVG(salary)` to calculate the average salary for each department.
+
+-   The `HAVING` clause filters out departments with an average salary less than or equal to 50,000.
+
+#### Sample Result:
+
+```
+ department  | avg
+-------------+------
+ Sales       | 80000
+
+```
+
+In this case, only the `Sales` department has an average salary greater than 50,000.
+
+#### Example 2: Filtering Groups with `HAVING` and `COUNT()`
+
+```
+SELECT department, COUNT(*)
+FROM employees
+GROUP BY department
+HAVING COUNT(*) > 5;
+
+```
+
+This filters departments that have more than 5 employees.
+
+#### Sample Result:
+
+```
+ department  | count
+-------------+-------
+ Sales       | 10
+ Marketing   | 8
+
+```
+
+* * * * *
+
+### **Using `GROUP BY` with `ORDER BY`**
+
+You can combine **`GROUP BY`** with **`ORDER BY`** to sort the results after grouping.
+
+#### Example 1: Sorting by Grouped Aggregated Value
+
+```
+SELECT department, AVG(salary)
+FROM employees
+GROUP BY department
+ORDER BY AVG(salary) DESC;
+
+```
+
+This query:
+
+-   Groups the employees by department.
+
+-   Calculates the average salary for each department.
+
+-   Orders the results by the average salary in descending order.
+
+#### Sample Result:
+
+```
+ department  | avg
+-------------+------
+ Sales       | 80000
+ Marketing   | 50000
+ HR          | 45000
+
+```
+
+* * * * *
+
+### **`GROUP BY` Best Practices**
+
+-   **Columns in `GROUP BY`**: All columns in the `SELECT` list that are not part of an aggregate function must be included in the `GROUP BY` clause.
+
+-   **Use `HAVING` for Filtering Groups**: Always use `HAVING` to filter aggregated results after the `GROUP BY` operation.
+
+-   **Performance Considerations**: Grouping can be resource-intensive, especially with large datasets. Make sure indexes are used appropriately on the columns being grouped.
+
+* * * * *
+
+### **Summary of Key Concepts**
+
+-   **`GROUP BY`**: Used to group rows based on one or more columns and perform aggregate functions on those groups.
+
+-   **Common Aggregate Functions**:
+
+    -   `COUNT()`: Counts the number of rows.
+
+    -   `SUM()`: Calculates the sum of numeric values.
+
+    -   `AVG()`: Computes the average of numeric values.
+
+    -   `MIN()`, `MAX()`: Finds the minimum and maximum values.
+
+-   **`HAVING`**: Filters groups after the `GROUP BY` clause.
+
+-   **`ORDER BY`**: Sorts the result set after grouping.
+
+* * * * *
+
+### **Exam Power-ups for Memory:**
+
+-   **`GROUP BY`**: Always group by columns that are not part of aggregate functions.
+
+-   **`HAVING`**: Use `HAVING` to filter grouped results, not `WHERE`.
+
+-   **Performance**: Use **indexes** to speed up queries involving `GROUP BY`, especially when working with large datasets.
+
+* * * * *
+
+```
+SELECT department, COUNT(*)
+FROM employees
+GROUP BY department;
+
+```
+
+### **Order of Execution in SQL Queries**
+
+1.  **FROM**: The first step is the **`FROM`** clause, where the database retrieves data from the `employees` table. This is where the raw data comes from.
+
+2.  **JOINs** (if any): If the query had any `JOIN` operations, they would be executed after the **`FROM`** clause. But since your query does not involve any `JOIN` operations, this step is skipped.
+
+3.  **WHERE** (if any): If there were a **`WHERE`** clause in the query, it would filter rows based on the conditions specified. It applies before any grouping, so only the rows that meet the conditions would be considered for aggregation in the next step. Again, since this query does not have a `WHERE` clause, this step is skipped.
+
+4.  **GROUP BY**: The **`GROUP BY`** clause groups the data based on the `department` column. This step organizes all rows from the `employees` table into groups where each group consists of employees in the same department.
+
+5.  **HAVING** (if any): If there were a **`HAVING`** clause, it would filter the grouped results after **`GROUP BY`**. For example, you could have used **`HAVING COUNT(*) > 5`** to only return departments with more than 5 employees. However, since this query doesn't have a `HAVING` clause, this step is skipped.
+
+6.  **SELECT**: The **`SELECT`** clause comes after **`GROUP BY`** and **`HAVING`** (if any). In this step, the database evaluates the expressions listed in the **`SELECT`** clause. Here, it is returning:
+
+    -   The `department` column, which is part of the grouping.
+
+    -   The count of rows (i.e., employees) per department, which is calculated by the `COUNT(*)` aggregate function.
+
+7.  **ORDER BY** (if any): If the query had an **`ORDER BY`** clause, it would be executed next to sort the results. Since there is no **`ORDER BY`** clause in your query, this step is skipped.
+
+8.  **LIMIT/OFFSET** (if any): The **`LIMIT`** and **`OFFSET`** clauses are applied last. These limit the number of rows returned by the query and control pagination (if used). Since there are no **`LIMIT`** or **`OFFSET`** clauses in your query, this step is also skipped.
+
+### **Summary of Execution Order**
+
+The execution order of your query is as follows:
+
+1.  **FROM** (`employees` table) -- Retrieve data from the table.
+
+2.  **GROUP BY** (`department`) -- Group the rows by the `department` column.
+
+3.  **SELECT** -- For each group, calculate the `COUNT(*)` and return the `department` and count.
+
+4.  **(Optional)** **HAVING** -- If applied, filters the grouped results.
+
+5.  **(Optional)** **ORDER BY** -- If applied, sorts the results.
+
+6.  **(Optional)** **LIMIT/OFFSET** -- If applied, limits the number of rows and controls pagination.
+
+* * * * *
+
+### **Order of Execution for Example Query:**
+
+```
+SELECT department, COUNT(*)
+FROM employees
+GROUP BY department;
+
+```
+
+1.  **FROM**: Retrieve all rows from the `employees` table.
+
+2.  **GROUP BY**: Group the rows by `department`.
+
+3.  **SELECT**: For each group (department), calculate the number of employees using `COUNT(*)`.
+
+4.  **(No HAVING clause)**: No filtering is done on the grouped data.
+
+5.  **(No ORDER BY clause)**: No sorting is done on the result.
+
+6.  **(No LIMIT/OFFSET)**: No rows are excluded or limited.
+
+* * * * *
+
+### **Conclusion**
+
+This is the standard execution order for SQL queries. Understanding the order helps ensure that you use clauses like **`WHERE`**, **`HAVING`**, **`ORDER BY`**, and others correctly.
+
+
+### **1\. SELECT Statement Syntax Order**
+
+The general syntax order for a **`SELECT`** query is as follows:
+
+```
+SELECT [DISTINCT] column1, column2, ...
+FROM table_name
+[WHERE condition]
+[GROUP BY column1, column2, ...]
+[HAVING condition]
+[ORDER BY column1 [ASC|DESC], column2 [ASC|DESC], ...]
+[LIMIT number] [OFFSET number];
+
+```
+
+Let's break it down step by step:
+
+* * * * *
+
+### **Order of SQL Clauses**
+
+1.  **SELECT**:
+
+    -   The **`SELECT`** clause defines the columns that will be returned by the query.
+
+    -   Optionally, you can use **`DISTINCT`** to ensure that duplicate rows are eliminated from the result set.
+
+    ```
+    SELECT column1, column2, ...
+
+    ```
+
+2.  **FROM**:
+
+    -   The **`FROM`** clause specifies the table(s) from which to retrieve the data.
+
+    ```
+    FROM table_name
+
+    ```
+
+3.  **WHERE**:
+
+    -   The **`WHERE`** clause filters the rows before grouping or aggregation happens.
+
+    -   This is where you can define conditions that need to be met for rows to be included in the query result.
+
+    ```
+    WHERE condition
+
+    ```
+
+4.  **GROUP BY**:
+
+    -   The **`GROUP BY`** clause is used to group rows based on one or more columns. It's often used in conjunction with aggregate functions (e.g., `COUNT()`, `SUM()`, `AVG()`).
+
+    ```
+    GROUP BY column1, column2, ...
+
+    ```
+
+5.  **HAVING**:
+
+    -   The **`HAVING`** clause is used to filter groups after they've been created by the **`GROUP BY`** clause. It's used when you want to filter based on aggregate functions.
+
+    -   **`HAVING`** is applied **after** **`GROUP BY`**.
+
+    ```
+    HAVING condition
+
+    ```
+
+6.  **ORDER BY**:
+
+    -   The **`ORDER BY`** clause is used to sort the result set based on one or more columns.
+
+    -   You can specify **`ASC`** (ascending) or **`DESC`** (descending) order for sorting.
+
+    ```
+    ORDER BY column1 [ASC|DESC], column2 [ASC|DESC]
+
+    ```
+
+7.  **LIMIT**:
+
+    -   The **`LIMIT`** clause restricts the number of rows returned by the query. It is commonly used for pagination or when you want to fetch a specific number of rows.
+
+    -   **`LIMIT`** is applied **last** in the query execution process.
+
+    ```
+    LIMIT number
+
+    ```
+
+8.  **OFFSET**:
+
+    -   The **`OFFSET`** clause is used to skip a specified number of rows before returning the result.
+
+    -   It is often used for pagination, where you can combine **`LIMIT`** and **`OFFSET`** to fetch data in chunks (pages).
+
+    ```
+    OFFSET number
+
+    ```
+
+* * * * *
+
+### **Example Query with All Clauses:**
+
+Here's an example of a query that utilizes all of these clauses:
+
+```
+SELECT department, COUNT(*)
+FROM employees
+WHERE salary > 50000
+GROUP BY department
+HAVING COUNT(*) > 5
+ORDER BY department ASC
+LIMIT 10 OFFSET 20;
+
+```
+
+### **Explanation:**
+
+1.  **`SELECT department, COUNT(*)`**: Specifies the columns to return, which in this case are `department` and the count of employees.
+
+2.  **`FROM employees`**: Specifies the table from which to retrieve the data.
+
+3.  **`WHERE salary > 50000`**: Filters out employees whose salary is less than or equal to 50,000.
+
+4.  **`GROUP BY department`**: Groups the data by the `department` column.
+
+5.  **`HAVING COUNT(*) > 5`**: Filters out departments that have fewer than 6 employees after grouping.
+
+6.  **`ORDER BY department ASC`**: Sorts the result set by `department` in ascending order.
+
+7.  **`LIMIT 10 OFFSET 20`**: Fetches 10 rows starting from the 21st row (for pagination).
+
+* * * * *
+
+### **Summary of Clause Order in SQL**
+
+1.  **SELECT**
+
+2.  **FROM**
+
+3.  **WHERE**
+
+4.  **GROUP BY**
+
+5.  **HAVING**
+
+6.  **ORDER BY**
+
+7.  **LIMIT**
+
+8.  **OFFSET**
+
+### **Important Points to Remember:**
+
+-   **`WHERE`** filters rows before grouping, while **`HAVING`** filters after grouping.
+
+-   **`ORDER BY`** can be used to sort the final result set.
+
+-   **`LIMIT`** and **`OFFSET`** are typically used for controlling the number of rows returned, especially in pagination scenarios.
+
+* * * * *
+
+### **Exam Power-ups for Memory:**
+
+-   **Clause Order**: Always remember the correct order: **`SELECT` -> `FROM` -> `WHERE` -> `GROUP BY` -> `HAVING` -> `ORDER BY` -> `LIMIT/OFFSET`**.
+
+-   **`HAVING` vs `WHERE`**: Use **`WHERE`** to filter individual rows, and **`HAVING`** to filter groups after aggregation.
+
+-   **Pagination**: Use **`LIMIT`** and **`OFFSET`** for pagination when dealing with large datasets.
+
+* * * * *
+
+
+---
+
+### **1. Alias (2:09:43)**
+
+An **alias** is a temporary name given to a table or a column in a query. Aliases are often used to make queries more readable or when you need to refer to a table or column with a shorter name.
+
+#### **For Columns**:
+You can give a column a temporary name using the `AS` keyword.
+
+#### Syntax:
+```sql
+SELECT column_name AS alias_name
+FROM table_name;
+```
+
+#### Example 1: Column Alias for Calculated Column
+```sql
+SELECT salary * 12 AS yearly_salary
+FROM employees;
+```
+Here, `yearly_salary` is an alias for the calculated column (`salary * 12`), making the result more understandable.
+
+#### Sample Result:
+```
+ yearly_salary
+---------------
+ 60000
+ 72000
+ 50000
+```
+
+#### Example 2: Table Alias
+You can also create an alias for a table, especially when you are working with joins or long table names.
+
+```sql
+SELECT e.first_name, e.last_name, e.salary
+FROM employees AS e;
+```
+Here, `e` is an alias for the `employees` table.
+
+#### Sample Result:
+```
+ first_name | last_name | salary
+------------+-----------+--------
+ John       | Doe       | 50000
+ Jane       | Smith     | 60000
+```
+
+---
+
+### **2. COALESCE (2:12:32)**
+
+The **`COALESCE()`** function returns the first non-`NULL` value in a list of arguments. It is used to handle `NULL` values in your query results and substitute them with a default value.
+
+#### Syntax:
+```sql
+COALESCE(value1, value2, ..., valueN)
+```
+
+#### Example 1: Handling `NULL` Values in a Salary Column
+```sql
+SELECT first_name, COALESCE(salary, 30000) AS adjusted_salary
+FROM employees;
+```
+If the `salary` is `NULL`, the **`COALESCE()`** function will substitute it with `30000`.
+
+#### Sample Result:
+```
+ first_name | adjusted_salary
+------------+-----------------
+ John       | 50000
+ Jane       | 60000
+ Alice      | 30000
+```
+
+In this example, if an employee has a `NULL` salary, it is replaced by `30000`.
+
+#### Example 2: Using `COALESCE()` for Multiple Columns
+```sql
+SELECT first_name, COALESCE(phone_number, email, 'No Contact Info') AS contact_info
+FROM employees;
+```
+This returns the `phone_number` if available, otherwise the `email`, and if both are `NULL`, it returns `'No Contact Info'`.
+
+#### Sample Result:
+```
+ first_name | contact_info
+------------+-------------
+ John       | 123-456-7890
+ Jane       | jane@example.com
+ Alice      | No Contact Info
+```
+
+---
+
+### **3. NULLIF (2:16:15)**
+
+The **`NULLIF()`** function returns `NULL` if two expressions are equal. Otherwise, it returns the first expression. This is useful to prevent division by zero or other conditions where you want to return `NULL` for certain cases.
+
+#### Syntax:
+```sql
+NULLIF(expression1, expression2)
+```
+
+#### Example 1: Preventing Division by Zero
+```sql
+SELECT sales / NULLIF(quantity, 0) AS sales_per_item
+FROM products;
+```
+Here, `NULLIF(quantity, 0)` ensures that if `quantity` is `0`, the division will not occur and will return `NULL`.
+
+#### Sample Result:
+```
+ sales_per_item
+-----------------
+ 500
+ NULL
+ 250
+```
+
+In the second row, if `quantity` was `0`, the `NULLIF()` function prevents the division by zero and returns `NULL`.
+
+#### Example 2: Handling Equal Values
+```sql
+SELECT name, NULLIF(salary, 0) AS non_zero_salary
+FROM employees;
+```
+This query returns `NULL` for employees who have a salary of `0`.
+
+#### Sample Result:
+```
+ name   | non_zero_salary
+--------+-----------------
+ John   | 50000
+ Jane   | 60000
+ Alice  | NULL
+```
+
+---
+
+### **4. Timestamps and Dates Course (2:20:21)**
+
+In PostgreSQL, **`DATE`** and **`TIMESTAMP`** types are used to store date and time information. `TIMESTAMP` stores both the date and time, while `DATE` only stores the date (year, month, and day).
+
+#### **`DATE`**:
+- Stores only the date (no time).
+- Example: `2023-04-05`.
+
+#### **`TIMESTAMP`**:
+- Stores both the date and time.
+- Example: `2023-04-05 14:30:00`.
+
+#### Example 1: Using `DATE`
+```sql
+SELECT first_name, hire_date
+FROM employees
+WHERE hire_date > '2022-01-01';
+```
+This query selects employees hired after January 1, 2022.
+
+#### Sample Result:
+```
+ first_name | hire_date
+------------+-----------
+ John       | 2023-03-15
+ Jane       | 2022-06-20
+```
+
+#### Example 2: Using `TIMESTAMP`
+```sql
+SELECT first_name, hire_date, last_login
+FROM employees
+WHERE last_login > '2023-01-01 00:00:00';
+```
+This query selects employees who logged in after January 1, 2023, at midnight.
+
+#### Sample Result:
+```
+ first_name | hire_date  | last_login
+------------+------------+---------------------
+ John       | 2023-03-15 | 2023-04-05 10:00:00
+ Jane       | 2022-06-20 | 2023-03-30 08:30:00
+```
+
+---
+
+### **5. Adding and Subtracting with Dates (2:23:21)**
+
+In PostgreSQL, you can add or subtract intervals (such as days, months, years) to/from `DATE` or `TIMESTAMP` columns.
+
+#### **Adding/Subtracting Days**
+
+#### Example 1: Adding Days to a Date
+```sql
+SELECT first_name, hire_date, hire_date + INTERVAL '30 days' AS hire_plus_30_days
+FROM employees;
+```
+This query adds 30 days to the `hire_date` for each employee.
+
+#### Sample Result:
+```
+ first_name | hire_date  | hire_plus_30_days
+------------+------------+-------------------
+ John       | 2023-03-15 | 2023-04-14
+ Jane       | 2022-06-20 | 2022-07-20
+```
+
+#### Example 2: Subtracting Days from a Date
+```sql
+SELECT first_name, hire_date, hire_date - INTERVAL '15 days' AS hire_minus_15_days
+FROM employees;
+```
+This query subtracts 15 days from the `hire_date`.
+
+#### Sample Result:
+```
+ first_name | hire_date  | hire_minus_15_days
+------------+------------+-------------------
+ John       | 2023-03-15 | 2023-03-01
+ Jane       | 2022-06-20 | 2022-06-05
+```
+
+#### **Adding/Subtracting Time (e.g., Hours, Minutes)**
+
+#### Example 3: Adding Time to a Timestamp
+```sql
+SELECT first_name, last_login, last_login + INTERVAL '2 hours' AS last_login_plus_2_hours
+FROM employees;
+```
+This adds 2 hours to the `last_login` timestamp.
+
+#### Sample Result:
+```
+ first_name | last_login          | last_login_plus_2_hours
+------------+---------------------+-------------------------
+ John       | 2023-04-05 10:00:00 | 2023-04-05 12:00:00
+ Jane       | 2023-03-30 08:30:00 | 2023-03-30 10:30:00
+```
+
+---
+
+### **Summary**
+
+- **Alias**: Temporary names for columns and tables for easier reference.
+- **COALESCE**: Returns the first non-`NULL` value in a list of expressions.
+- **NULLIF**: Returns `NULL` if two expressions are equal, otherwise returns the first expression.
+- **Timestamps and Dates**: Use `DATE` for dates, and `TIMESTAMP` for both date and time.
+- **Adding/Subtracting Dates**: Use **`INTERVAL`** to add or subtract time (e.g., days, hours) to/from date or timestamp columns.
+
+---
+
+### **Exam Power-ups for Memory:**
+
+- **Alias**: Use aliases to simplify complex queries or make them more readable.
+- **COALESCE**: Great for replacing `NULL` values with default values, especially in financial reports.
+- **NULLIF**: Prevents unwanted results like division by zero by returning `NULL` for specific conditions.
+- **Timestamps**: Understand the difference between `DATE` and `TIMESTAMP`, and use **`INTERVAL`** to add or subtract time.
+- **Date Arithmetic**: Date arithmetic with **`INTERVAL`** is a powerful tool for manipulating dates.
+
+---
+
+* * * * *
+
+### **1\. Extracting Fields From Timestamp (2:25:58)**
+
+In PostgreSQL, you can **extract specific components** (such as year, month, day, hour, minute, second) from a `TIMESTAMP` or `DATE` field using the **`EXTRACT()`** function. This allows you to isolate individual parts of a date or timestamp for analysis.
+
+#### **Syntax of `EXTRACT()`**:
+
+```
+EXTRACT(field FROM source)
+
+```
+
+-   **`field`**: The specific part of the date or time you want to extract. Common fields include `year`, `month`, `day`, `hour`, `minute`, `second`, etc.
+
+-   **`source`**: The `TIMESTAMP` or `DATE` column (or expression) from which to extract the field.
+
+* * * * *
+
+#### **Example 1: Extracting Year from a Timestamp**
+
+```
+SELECT first_name, last_login, EXTRACT(YEAR FROM last_login) AS year_joined
+FROM employees;
+
+```
+
+This query extracts the **year** from the `last_login` column for each employee.
+
+#### Sample Result:
+
+```
+ first_name | last_login          | year_joined
+------------+---------------------+-------------
+ John       | 2023-04-05 10:00:00 | 2023
+ Jane       | 2022-03-30 08:30:00 | 2022
+ Alice      | 2021-06-15 09:45:00 | 2021
+
+```
+
+#### **Example 2: Extracting Month and Day from a Timestamp**
+
+```
+SELECT first_name, last_login,
+       EXTRACT(MONTH FROM last_login) AS month_joined,
+       EXTRACT(DAY FROM last_login) AS day_joined
+FROM employees;
+
+```
+
+This query extracts the **month** and **day** from the `last_login` timestamp.
+
+#### Sample Result:
+
+```
+ first_name | last_login          | month_joined | day_joined
+------------+---------------------+--------------+------------
+ John       | 2023-04-05 10:00:00 | 4            | 5
+ Jane       | 2022-03-30 08:30:00 | 3            | 30
+ Alice      | 2021-06-15 09:45:00 | 6            | 15
+
+```
+
+#### **Example 3: Extracting Hour and Minute from a Timestamp**
+
+```
+SELECT first_name, last_login,
+       EXTRACT(HOUR FROM last_login) AS hour_logged_in,
+       EXTRACT(MINUTE FROM last_login) AS minute_logged_in
+FROM employees;
+
+```
+
+This query extracts the **hour** and **minute** from the `last_login` timestamp.
+
+#### Sample Result:
+
+```
+ first_name | last_login          | hour_logged_in | minute_logged_in
+------------+---------------------+----------------+------------------
+ John       | 2023-04-05 10:00:00 | 10             | 0
+ Jane       | 2022-03-30 08:30:00 | 8              | 30
+ Alice      | 2021-06-15 09:45:00 | 9              | 45
+
+```
+
+* * * * *
+
+### **2\. Age Function (2:27:28)**
+
+The **`AGE()`** function in PostgreSQL is used to calculate the interval (the difference) between two dates or timestamps. It is commonly used to calculate an **age** or the difference between a given date and the current date.
+
+#### **Syntax of `AGE()`**:
+
+```
+AGE(timestamp1, timestamp2)
+
+```
+
+-   **`timestamp1`**: The first timestamp or date (the later date).
+
+-   **`timestamp2`**: The second timestamp or date (the earlier date).
+
+If you only pass one argument to **`AGE()`**, it will calculate the interval between the provided timestamp and the current date and time.
+
+* * * * *
+
+#### **Example 1: Calculating Age Based on Birthdate**
+
+Let's calculate the **age** of employees based on their `birthdate` column.
+
+```
+SELECT first_name, birthdate, AGE(birthdate) AS age
+FROM employees;
+
+```
+
+This query calculates the age by subtracting the `birthdate` from the current date.
+
+#### Sample Result:
+
+```
+ first_name | birthdate  | age
+------------+------------+---------------------
+ John       | 1990-05-15 | 32 years 11 mons 20 days
+ Jane       | 1985-06-25 | 37 years 9 mons 10 days
+ Alice      | 2000-08-10 | 22 years 8 mons 5 days
+
+```
+
+#### **Example 2: Calculating Time Difference Between Two Timestamps**
+
+```
+SELECT first_name, last_login, AGE(last_login) AS time_since_last_login
+FROM employees;
+
+```
+
+This calculates the difference between the `last_login` timestamp and the current date.
+
+#### Sample Result:
+
+```
+ first_name | last_login          | time_since_last_login
+------------+---------------------+------------------------
+ John       | 2023-04-05 10:00:00 | 0 years 0 mons 1 days
+ Jane       | 2022-03-30 08:30:00 | 1 years 0 mons 6 days
+ Alice      | 2021-06-15 09:45:00 | 1 years 9 mons 19 days
+
+```
+
+* * * * *
+
+### **Summary of Key Concepts**
+
+-   **`EXTRACT()`**: Extracts specific fields (e.g., year, month, day, hour) from `TIMESTAMP` or `DATE` values.
+
+-   **`AGE()`**: Calculates the difference (interval) between two dates or timestamps, or between a date and the current date.
+
+* * * * *
+
+### **Exam Power-ups for Memory:**
+
+-   **`EXTRACT()`**: Remember that **`EXTRACT(field FROM source)`** lets you break down a timestamp into components. It's useful for time-based analysis like calculating yearly, monthly, or daily trends.
+
+-   **`AGE()`**: Use **`AGE()`** to easily calculate the time difference, such as calculating someone's age or the time elapsed between two timestamps.
+
+* * * * *
+* * * * *
+
+### **1\. What Are Primary Keys? (2:29:24)**
+
+A **primary key** is a column (or combination of columns) in a database table that uniquely identifies each row in that table. A primary key must have the following properties:
+
+-   **Uniqueness**: No two rows can have the same value for the primary key column(s).
+
+-   **Non-nullability**: The primary key column(s) cannot contain `NULL` values, ensuring that each row has a valid identifier.
+
+### **Why are Primary Keys Important?**
+
+-   **Uniquely Identifies Records**: It provides a way to uniquely identify each record in a table, ensuring data integrity.
+
+-   **Enforces Data Integrity**: By ensuring that no duplicate or null values are inserted into the primary key column, it helps maintain the integrity of the database.
+
+-   **Helps with Relationships**: The primary key is often used to establish relationships between tables, typically by being referenced as a foreign key in another table.
+
+* * * * *
+
+### **2\. Understanding Primary Keys (2:31:23)**
+
+A primary key is not only a unique identifier for a row but also plays a crucial role in ensuring data relationships in relational databases.
+
+#### **Types of Primary Keys**:
+
+-   **Single Column Primary Key**: A single column is used as the primary key.
+
+-   **Composite Primary Key**: A combination of two or more columns is used to form a primary key. This is useful when no single column can uniquely identify a row.
+
+#### **Example 1: Single Column Primary Key**
+
+```
+CREATE TABLE employees (
+    employee_id SERIAL PRIMARY KEY,
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    hire_date DATE
+);
+
+```
+
+Here, the **`employee_id`** column is the primary key, and it ensures that each employee has a unique identifier.
+
+#### **Example 2: Composite Primary Key**
+
+```
+CREATE TABLE order_items (
+    order_id INT,
+    product_id INT,
+    quantity INT,
+    PRIMARY KEY (order_id, product_id)
+);
+
+```
+
+In this case, the combination of **`order_id`** and **`product_id`** serves as the primary key. This ensures that each product in an order is uniquely identified.
+
+#### Sample Result:
+
+-   In the first example, `employee_id` uniquely identifies each employee.
+
+-   In the second example, the combination of `order_id` and `product_id` uniquely identifies each item in an order.
+
+* * * * *
+
+### **3\. Adding Primary Key (2:36:26)**
+
+You can define a primary key when you create a table, or you can add it to an existing table using the `ALTER TABLE` statement.
+
+#### **Syntax to Add Primary Key When Creating a Table:**
+
+```
+CREATE TABLE table_name (
+    column1 datatype PRIMARY KEY,
+    column2 datatype,
+    ...
+);
+
+```
+
+#### **Example 1: Adding Primary Key When Creating a Table**
+
+```
+CREATE TABLE students (
+    student_id SERIAL PRIMARY KEY,
+    name VARCHAR(100),
+    date_of_birth DATE
+);
+
+```
+
+In this example, **`student_id`** is set as the primary key when the table is created.
+
+#### **Syntax to Add Primary Key to an Existing Table:**
+
+```
+ALTER TABLE table_name
+ADD CONSTRAINT constraint_name PRIMARY KEY (column1, column2, ...);
+
+```
+
+#### **Example 2: Adding Primary Key to Existing Table**
+
+```
+ALTER TABLE employees
+ADD CONSTRAINT pk_employee_id PRIMARY KEY (employee_id);
+
+```
+
+This query adds a primary key to the `employee_id` column of the existing `employees` table.
+
+#### Sample Result:
+
+-   When adding a primary key to a table, PostgreSQL will enforce the uniqueness and non-nullability of the specified column(s).
+
+-   The query will execute successfully if the data in the table does not violate the primary key constraints.
+
+* * * * *
+
+### **4\. Unique Constraints (2:40:55)**
+
+A **unique constraint** ensures that the values in a column (or combination of columns) are unique across all rows in a table. Unlike primary keys, unique constraints allow `NULL` values but ensure that all non-`NULL` values are distinct.
+
+#### **Syntax**:
+
+```
+CREATE TABLE table_name (
+    column_name datatype UNIQUE,
+    ...
+);
+
+```
+
+#### **Example 1: Adding a Unique Constraint on a Column**
+
+```
+CREATE TABLE customers (
+    customer_id SERIAL PRIMARY KEY,
+    email VARCHAR(100) UNIQUE,
+    first_name VARCHAR(100),
+    last_name VARCHAR(100)
+);
+
+```
+
+Here, **`email`** has a unique constraint, ensuring that no two customers can have the same email address.
+
+#### **Example 2: Adding a Unique Constraint to an Existing Table**
+
+```
+ALTER TABLE customers
+ADD CONSTRAINT unique_email UNIQUE (email);
+
+```
+
+This adds a unique constraint to the `email` column in the existing `customers` table.
+
+#### Sample Result:
+
+-   If you attempt to insert a duplicate value in a column with a unique constraint, PostgreSQL will raise an error.
+
+Example of error:
+
+```
+ERROR: duplicate key value violates unique constraint "unique_email"
+
+```
+
+* * * * *
+
+### **5\. Check Constraints (2:49:15)**
+
+A **check constraint** ensures that values in a column meet a specific condition. It's used to enforce domain integrity by limiting the values that can be stored in a column.
+
+#### **Syntax**:
+
+```
+CREATE TABLE table_name (
+    column_name datatype CHECK (condition),
+    ...
+);
+
+```
+
+#### **Example 1: Adding a Check Constraint for Age**
+
+```
+CREATE TABLE employees (
+    employee_id SERIAL PRIMARY KEY,
+    name VARCHAR(100),
+    birthdate DATE,
+    age INT CHECK (age >= 18)
+);
+
+```
+
+This ensures that the `age` column only accepts values greater than or equal to 18.
+
+#### **Example 2: Adding a Check Constraint for Valid Salary**
+
+```
+ALTER TABLE employees
+ADD CONSTRAINT check_salary CHECK (salary >= 30000);
+
+```
+
+This adds a check constraint that ensures that the `salary` column has a value greater than or equal to 30,000.
+
+#### Sample Result:
+
+-   If you try to insert a value that doesn't satisfy the check condition, PostgreSQL will raise an error.
+
+Example of error:
+
+```
+ERROR: new row for relation "employees" violates check constraint "check_salary"
+
+```
+
+* * * * *
+
+### **Summary of Key Concepts**
+
+-   **Primary Keys**: Ensure each row in a table has a unique identifier and prevent `NULL` values.
+
+    -   **Composite Primary Keys**: Use multiple columns to create a unique identifier for each row.
+
+-   **Adding Primary Key**: You can define a primary key when creating a table or add it later using `ALTER TABLE`.
+
+-   **Unique Constraints**: Ensure uniqueness of column values, but unlike primary keys, allow `NULL` values.
+
+-   **Check Constraints**: Ensure that the values in a column meet specific conditions.
+
+* * * * *
+
+### **Exam Power-ups for Memory:**
+
+-   **Primary Key**: Remember that **primary keys** are **unique** and **non-nullable**. They help maintain data integrity and establish relationships.
+
+-   **Unique Constraints**: **Unique constraints** allow `NULL` values, but enforce uniqueness for non-`NULL` values.
+
+-   **Check Constraints**: Use **check constraints** to enforce domain rules, such as limiting values to a specific range.
+
+* * * * *
+
+* * * * *
+
+### **1\. `ALTER TABLE` Statement**
+
+The **`ALTER TABLE`** statement is used to modify the structure of an existing table. It can be used for several operations:
+
+-   **Adding Columns**
+
+-   **Dropping Columns**
+
+-   **Renaming Columns**
+
+-   **Modifying Columns**
+
+-   **Adding Constraints**
+
+-   **Dropping Constraints**
+
+* * * * *
+
+### **2\. Adding Columns with `ALTER TABLE`**
+
+You can use **`ALTER TABLE`** to add a new column to an existing table.
+
+#### **Syntax**:
+
+```
+ALTER TABLE table_name
+ADD column_name datatype;
+
+```
+
+#### **Example 1: Adding a Single Column**
+
+```
+ALTER TABLE employees
+ADD middle_name VARCHAR(100);
+
+```
+
+This adds a `middle_name` column to the `employees` table. The `middle_name` column is of type `VARCHAR(100)`.
+
+#### **Sample Result**:
+
+-   The `employees` table will now have an additional `middle_name` column.
+
+#### **Example 2: Adding Multiple Columns**
+
+```
+ALTER TABLE employees
+ADD phone_number VARCHAR(20),
+    hire_date DATE;
+
+```
+
+This adds two new columns: `phone_number` and `hire_date` to the `employees` table.
+
+#### **Sample Result**:
+
+-   The `employees` table will now have both the `phone_number` and `hire_date` columns.
+
+* * * * *
+
+### **3\. Dropping Columns with `ALTER TABLE`**
+
+You can use **`ALTER TABLE`** to remove a column from a table.
+
+#### **Syntax**:
+
+```
+ALTER TABLE table_name
+DROP COLUMN column_name;
+
+```
+
+#### **Example 1: Dropping a Column**
+
+```
+ALTER TABLE employees
+DROP COLUMN middle_name;
+
+```
+
+This removes the `middle_name` column from the `employees` table.
+
+#### **Sample Result**:
+
+-   The `middle_name` column will be removed from the `employees` table.
+
+* * * * *
+
+### **4\. Renaming Columns with `ALTER TABLE`**
+
+You can use **`ALTER TABLE`** to rename an existing column.
+
+#### **Syntax**:
+
+```
+ALTER TABLE table_name
+RENAME COLUMN old_column_name TO new_column_name;
+
+```
+
+#### **Example 1: Renaming a Column**
+
+```
+ALTER TABLE employees
+RENAME COLUMN hire_date TO employment_date;
+
+```
+
+This renames the `hire_date` column to `employment_date` in the `employees` table.
+
+#### **Sample Result**:
+
+-   The `hire_date` column will now be renamed to `employment_date`.
+
+* * * * *
+
+### **5\. Modifying Columns with `ALTER TABLE`**
+
+You can modify an existing column's data type or other properties.
+
+#### **Syntax**:
+
+```
+ALTER TABLE table_name
+ALTER COLUMN column_name SET DATA TYPE new_datatype;
+
+```
+
+#### **Example 1: Modifying a Column's Data Type**
+
+```
+ALTER TABLE employees
+ALTER COLUMN salary SET DATA TYPE DECIMAL(15, 2);
+
+```
+
+This changes the `salary` column to `DECIMAL(15, 2)`.
+
+#### **Sample Result**:
+
+-   The `salary` column now has the new data type `DECIMAL(15, 2)`.
+
+#### **Example 2: Modifying a Column to Not Null**
+
+```
+ALTER TABLE employees
+ALTER COLUMN email SET NOT NULL;
+
+```
+
+This modifies the `email` column to enforce that it cannot have `NULL` values.
+
+#### **Sample Result**:
+
+-   The `email` column now enforces the `NOT NULL` constraint.
+
+* * * * *
+
+### **6\. Adding Constraints with `ALTER TABLE`**
+
+You can use **`ALTER TABLE`** to add various types of constraints, such as `PRIMARY KEY`, `FOREIGN KEY`, `CHECK`, or `UNIQUE`.
+
+#### **Syntax for Adding Constraints**:
+
+```
+ALTER TABLE table_name
+ADD CONSTRAINT constraint_name constraint_type (column_name);
+
+```
+
+#### **Example 1: Adding a Primary Key**
+
+```
+ALTER TABLE employees
+ADD CONSTRAINT pk_employee_id PRIMARY KEY (employee_id);
+
+```
+
+This adds a `PRIMARY KEY` constraint on the `employee_id` column in the `employees` table.
+
+#### **Example 2: Adding a Foreign Key Constraint**
+
+```
+ALTER TABLE orders
+ADD CONSTRAINT fk_customer_id FOREIGN KEY (customer_id)
+REFERENCES customers(customer_id);
+
+```
+
+This adds a `FOREIGN KEY` constraint on the `customer_id` column in the `orders` table, referencing the `customer_id` column in the `customers` table.
+
+#### **Example 3: Adding a Unique Constraint**
+
+```
+ALTER TABLE employees
+ADD CONSTRAINT unique_email UNIQUE (email);
+
+```
+
+This adds a `UNIQUE` constraint to the `email` column to ensure all email addresses are unique.
+
+#### **Sample Result**:
+
+-   The specified constraints are added to the table, and PostgreSQL ensures they are enforced when inserting or updating rows.
+
+* * * * *
+
+### **7\. Dropping Constraints with `ALTER TABLE`**
+
+You can use **`ALTER TABLE`** to remove constraints from a table.
+
+#### **Syntax**:
+
+```
+ALTER TABLE table_name
+DROP CONSTRAINT constraint_name;
+
+```
+
+#### **Example 1: Dropping a Primary Key**
+
+```
+ALTER TABLE employees
+DROP CONSTRAINT pk_employee_id;
+
+```
+
+This removes the `PRIMARY KEY` constraint on the `employee_id` column.
+
+#### **Example 2: Dropping a Foreign Key**
+
+```
+ALTER TABLE orders
+DROP CONSTRAINT fk_customer_id;
+
+```
+
+This removes the `FOREIGN KEY` constraint from the `customer_id` column in the `orders` table.
+
+#### **Sample Result**:
+
+-   The specified constraints are dropped, and PostgreSQL will no longer enforce those rules.
+
+* * * * *
+
+### **8\. Renaming a Table with `ALTER TABLE`**
+
+You can rename a table using the `ALTER TABLE` statement.
+
+#### **Syntax**:
+
+```
+ALTER TABLE old_table_name
+RENAME TO new_table_name;
+
+```
+
+#### **Example 1: Renaming a Table**
+
+```
+ALTER TABLE employees
+RENAME TO staff;
+
+```
+
+This renames the `employees` table to `staff`.
+
+#### **Sample Result**:
+
+-   The table `employees` is now renamed to `staff`.
+
+* * * * *
+
+### **Summary of Key Concepts for `ALTER` Table**
+
+-   **Adding Columns**: Use `ADD COLUMN` to add a new column to an existing table.
+
+-   **Dropping Columns**: Use `DROP COLUMN` to remove an existing column.
+
+-   **Renaming Columns**: Use `RENAME COLUMN` to change a column's name.
+
+-   **Modifying Columns**: Use `ALTER COLUMN` to modify a column's data type or constraints.
+
+-   **Adding Constraints**: You can add primary keys, foreign keys, unique, and check constraints using `ADD CONSTRAINT`.
+
+-   **Dropping Constraints**: Use `DROP CONSTRAINT` to remove constraints.
+
+-   **Renaming Tables**: Use `RENAME TO` to rename a table.
+
+* * * * *
+
+### **Exam Power-ups for Memory:**
+
+-   **`ALTER TABLE`** is versatile: Use it to add, drop, modify columns, and manage constraints.
+
+-   **Adding Constraints**: Use `PRIMARY KEY`, `FOREIGN KEY`, `CHECK`, and `UNIQUE` constraints to enforce data integrity.
+
+-   **Renaming Columns/Tables**: Remember, you can rename columns and tables as needed, but it's important not to disrupt relationships with foreign keys or dependent objects.
+
+-   **Modifying Columns**: You can change column types (e.g., data type) and constraints, but always ensure there is no data conflict (like changing from `INTEGER` to `DATE`).
+
+* * * * *
+
+* * * * *
+
+### **1\. What Are Primary Keys? (2:29:24)**
+
+A **primary key** is a column (or combination of columns) in a database table that uniquely identifies each row in that table. A primary key must have the following properties:
+
+-   **Uniqueness**: No two rows can have the same value for the primary key column(s).
+
+-   **Non-nullability**: The primary key column(s) cannot contain `NULL` values, ensuring that each row has a valid identifier.
+
+### **Why are Primary Keys Important?**
+
+-   **Uniquely Identifies Records**: It provides a way to uniquely identify each record in a table, ensuring data integrity.
+
+-   **Enforces Data Integrity**: By ensuring that no duplicate or null values are inserted into the primary key column, it helps maintain the integrity of the database.
+
+-   **Helps with Relationships**: The primary key is often used to establish relationships between tables, typically by being referenced as a foreign key in another table.
+
+* * * * *
+
+### **2\. Understanding Primary Keys (2:31:23)**
+
+A primary key is not only a unique identifier for a row but also plays a crucial role in ensuring data relationships in relational databases.
+
+#### **Types of Primary Keys**:
+
+-   **Single Column Primary Key**: A single column is used as the primary key.
+
+-   **Composite Primary Key**: A combination of two or more columns is used to form a primary key. This is useful when no single column can uniquely identify a row.
+
+#### **Example 1: Single Column Primary Key**
+
+```
+CREATE TABLE employees (
+    employee_id SERIAL PRIMARY KEY,
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    hire_date DATE
+);
+
+```
+
+Here, the **`employee_id`** column is the primary key, and it ensures that each employee has a unique identifier.
+
+#### **Example 2: Composite Primary Key**
+
+```
+CREATE TABLE order_items (
+    order_id INT,
+    product_id INT,
+    quantity INT,
+    PRIMARY KEY (order_id, product_id)
+);
+
+```
+
+In this case, the combination of **`order_id`** and **`product_id`** serves as the primary key. This ensures that each product in an order is uniquely identified.
+
+#### Sample Result:
+
+-   In the first example, `employee_id` uniquely identifies each employee.
+
+-   In the second example, the combination of `order_id` and `product_id` uniquely identifies each item in an order.
+
+* * * * *
+
+### **3\. Adding Primary Key (2:36:26)**
+
+You can define a primary key when you create a table, or you can add it to an existing table using the `ALTER TABLE` statement.
+
+#### **Syntax to Add Primary Key When Creating a Table:**
+
+```
+CREATE TABLE table_name (
+    column1 datatype PRIMARY KEY,
+    column2 datatype,
+    ...
+);
+
+```
+
+#### **Example 1: Adding Primary Key When Creating a Table**
+
+```
+CREATE TABLE students (
+    student_id SERIAL PRIMARY KEY,
+    name VARCHAR(100),
+    date_of_birth DATE
+);
+
+```
+
+In this example, **`student_id`** is set as the primary key when the table is created.
+
+#### **Syntax to Add Primary Key to an Existing Table:**
+
+```
+ALTER TABLE table_name
+ADD CONSTRAINT constraint_name PRIMARY KEY (column1, column2, ...);
+
+```
+
+#### **Example 2: Adding Primary Key to Existing Table**
+
+```
+ALTER TABLE employees
+ADD CONSTRAINT pk_employee_id PRIMARY KEY (employee_id);
+
+```
+
+This query adds a primary key to the `employee_id` column of the existing `employees` table.
+
+#### Sample Result:
+
+-   When adding a primary key to a table, PostgreSQL will enforce the uniqueness and non-nullability of the specified column(s).
+
+-   The query will execute successfully if the data in the table does not violate the primary key constraints.
+
+* * * * *
+
+### **4\. Unique Constraints (2:40:55)**
+
+A **unique constraint** ensures that the values in a column (or combination of columns) are unique across all rows in a table. Unlike primary keys, unique constraints allow `NULL` values but ensure that all non-`NULL` values are distinct.
+
+#### **Syntax**:
+
+```
+CREATE TABLE table_name (
+    column_name datatype UNIQUE,
+    ...
+);
+
+```
+
+#### **Example 1: Adding a Unique Constraint on a Column**
+
+```
+CREATE TABLE customers (
+    customer_id SERIAL PRIMARY KEY,
+    email VARCHAR(100) UNIQUE,
+    first_name VARCHAR(100),
+    last_name VARCHAR(100)
+);
+
+```
+
+Here, **`email`** has a unique constraint, ensuring that no two customers can have the same email address.
+
+#### **Example 2: Adding a Unique Constraint to an Existing Table**
+
+```
+ALTER TABLE customers
+ADD CONSTRAINT unique_email UNIQUE (email);
+
+```
+
+This adds a unique constraint to the `email` column in the existing `customers` table.
+
+#### Sample Result:
+
+-   If you attempt to insert a duplicate value in a column with a unique constraint, PostgreSQL will raise an error.
+
+Example of error:
+
+```
+ERROR: duplicate key value violates unique constraint "unique_email"
+
+```
+
+* * * * *
+
+### **5\. Check Constraints (2:49:15)**
+
+A **check constraint** ensures that values in a column meet a specific condition. It's used to enforce domain integrity by limiting the values that can be stored in a column.
+
+#### **Syntax**:
+
+```
+CREATE TABLE table_name (
+    column_name datatype CHECK (condition),
+    ...
+);
+
+```
+
+#### **Example 1: Adding a Check Constraint for Age**
+
+```
+CREATE TABLE employees (
+    employee_id SERIAL PRIMARY KEY,
+    name VARCHAR(100),
+    birthdate DATE,
+    age INT CHECK (age >= 18)
+);
+
+```
+
+This ensures that the `age` column only accepts values greater than or equal to 18.
+
+#### **Example 2: Adding a Check Constraint for Valid Salary**
+
+```
+ALTER TABLE employees
+ADD CONSTRAINT check_salary CHECK (salary >= 30000);
+
+```
+
+This adds a check constraint that ensures that the `salary` column has a value greater than or equal to 30,000.
+
+#### Sample Result:
+
+-   If you try to insert a value that doesn't satisfy the check condition, PostgreSQL will raise an error.
+
+Example of error:
+
+```
+ERROR: new row for relation "employees" violates check constraint "check_salary"
+
+```
+
+* * * * *
+
+### **Summary of Key Concepts**
+
+-   **Primary Keys**: Ensure each row in a table has a unique identifier and prevent `NULL` values.
+
+    -   **Composite Primary Keys**: Use multiple columns to create a unique identifier for each row.
+
+-   **Adding Primary Key**: You can define a primary key when creating a table or add it later using `ALTER TABLE`.
+
+-   **Unique Constraints**: Ensure uniqueness of column values, but unlike primary keys, allow `NULL` values.
+
+-   **Check Constraints**: Ensure that the values in a column meet specific conditions.
+
+* * * * *
+
+### **Exam Power-ups for Memory:**
+
+-   **Primary Key**: Remember that **primary keys** are **unique** and **non-nullable**. They help maintain data integrity and establish relationships.
+
+-   **Unique Constraints**: **Unique constraints** allow `NULL` values, but enforce uniqueness for non-`NULL` values.
+
+-   **Check Constraints**: Use **check constraints** to enforce domain rules, such as limiting values to a specific range.
+
+* * * * *
