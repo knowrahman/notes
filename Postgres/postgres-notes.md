@@ -3939,3 +3939,1823 @@ ERROR: new row for relation "employees" violates check constraint "check_salary"
 -   **Check Constraints**: Use **check constraints** to enforce domain rules, such as limiting values to a specific range.
 
 * * * * *
+
+* * * * *
+
+### **1\. Unique Constraints (2:40:55)**
+
+A **unique constraint** ensures that all values in a column or a combination of columns are distinct across all rows in a table. It's similar to the **primary key** but has a key difference: a unique constraint allows `NULL` values, while a primary key does not.
+
+#### **Why Use Unique Constraints?**
+
+-   **Ensure Data Uniqueness**: They ensure that no two rows in a table can have the same value for the constrained column(s), but allow `NULL` values.
+
+-   **Flexibility**: Unlike primary keys, multiple `NULL` values are allowed in columns with a unique constraint (since `NULL` is not considered equal to another `NULL`).
+
+* * * * *
+
+#### **Syntax for Unique Constraint**:
+
+```
+CREATE TABLE table_name (
+    column_name datatype UNIQUE
+);
+
+```
+
+Or, to add a unique constraint to an existing table:
+
+```
+ALTER TABLE table_name
+ADD CONSTRAINT constraint_name UNIQUE (column_name);
+
+```
+
+* * * * *
+
+#### **Example 1: Adding a Unique Constraint When Creating a Table**
+
+```
+CREATE TABLE users (
+    user_id SERIAL PRIMARY KEY,
+    email VARCHAR(100) UNIQUE,
+    first_name VARCHAR(100),
+    last_name VARCHAR(100)
+);
+
+```
+
+Here, the **`email`** column is constrained to be unique, meaning no two users can have the same email address.
+
+#### Sample Result:
+
+-   If you try to insert two rows with the same `email`, PostgreSQL will throw a **duplicate key error**.
+
+```
+INSERT INTO users (email, first_name, last_name) VALUES
+('john.doe@example.com', 'John', 'Doe'),
+('john.doe@example.com', 'Jane', 'Doe');
+
+```
+
+Error:
+
+```
+ERROR:  duplicate key value violates unique constraint "users_email_key"
+
+```
+
+* * * * *
+
+#### **Example 2: Adding a Unique Constraint to an Existing Table**
+
+```
+ALTER TABLE users
+ADD CONSTRAINT unique_email UNIQUE (email);
+
+```
+
+This adds a unique constraint to the `email` column in the `users` table after the table has been created.
+
+#### Sample Result:
+
+-   The constraint ensures that all email addresses in the `users` table are unique.
+
+* * * * *
+
+#### **Example 3: Composite Unique Constraint**
+
+You can also apply the unique constraint to a combination of columns (a composite unique constraint).
+
+```
+CREATE TABLE orders (
+    order_id SERIAL PRIMARY KEY,
+    customer_id INT,
+    product_id INT,
+    UNIQUE (customer_id, product_id)
+);
+
+```
+
+In this case, the combination of `customer_id` and `product_id` must be unique, but you can have multiple rows for the same `customer_id` as long as the `product_id` is different.
+
+#### Sample Result:
+
+-   If you attempt to insert two orders with the same `customer_id` and `product_id`, it will violate the unique constraint.
+
+* * * * *
+
+### **2\. Check Constraints (2:49:15)**
+
+A **check constraint** ensures that values in a column meet a specific condition. It allows you to define custom validation rules for your data, ensuring that the data in your database conforms to certain criteria.
+
+#### **Why Use Check Constraints?**
+
+-   **Data Integrity**: Ensures that the values in a column are within a specific range or meet a particular condition (e.g., a positive number or valid date).
+
+-   **Prevent Invalid Data**: It helps prevent the insertion of invalid data that might otherwise not be caught by other constraints.
+
+* * * * *
+
+#### **Syntax for Check Constraint**:
+
+```
+CREATE TABLE table_name (
+    column_name datatype CHECK (condition)
+);
+
+```
+
+Or, to add a check constraint to an existing table:
+
+```
+ALTER TABLE table_name
+ADD CONSTRAINT constraint_name CHECK (condition);
+
+```
+
+* * * * *
+
+#### **Example 1: Adding a Check Constraint for Age**
+
+Let's say you want to make sure that the `age` column only accepts values greater than or equal to 18 (no one can be younger than 18).
+
+```
+CREATE TABLE employees (
+    employee_id SERIAL PRIMARY KEY,
+    name VARCHAR(100),
+    age INT CHECK (age >= 18)
+);
+
+```
+
+This `CHECK` constraint ensures that no employee can be younger than 18 years old.
+
+#### Sample Result:
+
+-   If you try to insert an employee with an age less than 18, PostgreSQL will reject the insertion.
+
+```
+INSERT INTO employees (name, age) VALUES ('John Doe', 17);
+
+```
+
+Error:
+
+```
+ERROR:  new row for relation "employees" violates check constraint "employees_age_check"
+
+```
+
+* * * * *
+
+#### **Example 2: Adding a Check Constraint for Salary Range**
+
+Let's say you want to ensure that the `salary` column has values between `30,000` and `200,000`.
+
+```
+ALTER TABLE employees
+ADD CONSTRAINT salary_check CHECK (salary BETWEEN 30000 AND 200000);
+
+```
+
+This check constraint ensures that any salary inserted into the `employees` table must be between `30,000` and `200,000`.
+
+#### Sample Result:
+
+-   If you try to insert a salary outside this range, PostgreSQL will reject the insertion.
+
+```
+INSERT INTO employees (name, salary) VALUES ('Jane Doe', 25000);
+
+```
+
+Error:
+
+```
+ERROR:  new row for relation "employees" violates check constraint "salary_check"
+
+```
+
+* * * * *
+
+#### **Example 3: Check Constraint with String Length**
+
+You can also use check constraints to enforce string length conditions.
+
+```
+CREATE TABLE products (
+    product_id SERIAL PRIMARY KEY,
+    product_name VARCHAR(100) CHECK (LENGTH(product_name) > 3)
+);
+
+```
+
+This ensures that the `product_name` column must have more than 3 characters.
+
+#### Sample Result:
+
+-   If you try to insert a product with a name that has fewer than 4 characters, PostgreSQL will reject the insertion.
+
+```
+INSERT INTO products (product_name) VALUES ('TV');
+
+```
+
+Error:
+
+```
+ERROR:  new row for relation "products" violates check constraint "products_product_name_check"
+
+```
+
+* * * * *
+
+### **Summary of Key Concepts**
+
+-   **Unique Constraints**: Ensure that all values in a column (or combination of columns) are distinct across all rows in a table. **Allow `NULL` values**, but **ensure non-`NULL` values are unique**.
+
+-   **Check Constraints**: Define conditions that the data must satisfy. They are used to enforce domain integrity by allowing only values that meet specific criteria (e.g., ranges, string lengths, valid dates).
+
+* * * * *
+
+### **Exam Power-ups for Memory**:
+
+-   **Unique Constraints**: They ensure **data uniqueness**, but unlike **primary keys**, they **allow `NULL` values**.
+
+-   **Check Constraints**: These are useful for **validating data** and ensuring that only **valid** values are inserted into the table. You can apply complex conditions (e.g., ranges, comparisons).
+
+-   **Composite Unique Constraint**: Allows enforcing uniqueness over multiple columns, not just one.
+
+* * * * *
+
+
+* * * * *
+
+### **1\. How to Delete Records (2:54:45)**
+
+The **`DELETE`** statement is used to remove one or more rows from a table based on a specified condition. When using the `DELETE` statement, it's essential to specify the correct condition using the **`WHERE`** clause, otherwise, you could accidentally delete all rows in the table.
+
+#### **Syntax**:
+
+```
+DELETE FROM table_name
+WHERE condition;
+
+```
+
+-   **`table_name`**: The name of the table from which you want to delete records.
+
+-   **`condition`**: A condition that specifies which rows should be deleted. Without the `WHERE` clause, **all records** in the table will be deleted.
+
+#### **Example 1: Deleting a Single Record**
+
+```
+DELETE FROM employees
+WHERE employee_id = 10;
+
+```
+
+This query deletes the employee with the `employee_id` of 10 from the `employees` table.
+
+#### Sample Result:
+
+-   After running the query, the employee with `employee_id = 10` will be removed from the table.
+
+#### **Example 2: Deleting Multiple Records**
+
+```
+DELETE FROM employees
+WHERE department = 'Sales';
+
+```
+
+This query deletes all employees in the `Sales` department from the `employees` table.
+
+#### Sample Result:
+
+-   All rows with `department = 'Sales'` will be deleted from the table.
+
+#### **Example 3: Deleting All Records from a Table (Without Deleting the Table)**
+
+```
+DELETE FROM employees;
+
+```
+
+This query deletes **all rows** from the `employees` table but **keeps the structure** of the table intact.
+
+#### Sample Result:
+
+-   After running this query, the table will be empty, but the table itself will remain in the database.
+
+#### **Important Considerations for `DELETE`**:
+
+-   **`WHERE` Clause**: Always use a `WHERE` clause to prevent deleting all rows in the table.
+
+-   **Performance**: Deleting many rows can be resource-intensive, especially on large tables. Consider using **`TRUNCATE`** if you need to delete all rows quickly, but note that `TRUNCATE` is a more permanent operation (i.e., it does not fire triggers).
+
+* * * * *
+
+### **2\. How to Update Records (3:01:36)**
+
+The **`UPDATE`** statement is used to modify existing records in a table. Similar to `DELETE`, it's important to specify a **`WHERE`** condition to target only the rows you want to update. Without the `WHERE` clause, all rows in the table will be updated.
+
+#### **Syntax**:
+
+```
+UPDATE table_name
+SET column1 = value1, column2 = value2, ...
+WHERE condition;
+
+```
+
+-   **`table_name`**: The name of the table where the update will be applied.
+
+-   **`column1 = value1`**: Specifies the column to update and the new value.
+
+-   **`condition`**: The condition to specify which rows should be updated.
+
+#### **Example 1: Updating a Single Record**
+
+```
+UPDATE employees
+SET salary = 70000
+WHERE employee_id = 5;
+
+```
+
+This query updates the salary of the employee with `employee_id = 5` to `70000`.
+
+#### Sample Result:
+
+-   The salary of the employee with `employee_id = 5` will be updated to `70000`.
+
+#### **Example 2: Updating Multiple Records**
+
+```
+UPDATE employees
+SET department = 'Marketing'
+WHERE department = 'Sales';
+
+```
+
+This query updates the department of all employees who are currently in the `Sales` department to `Marketing`.
+
+#### Sample Result:
+
+-   All rows with `department = 'Sales'` will be updated to `department = 'Marketing'`.
+
+#### **Example 3: Updating Multiple Columns**
+
+```
+UPDATE employees
+SET salary = 75000, department = 'HR'
+WHERE employee_id = 10;
+
+```
+
+This query updates both the `salary` and `department` columns for the employee with `employee_id = 10`.
+
+#### Sample Result:
+
+-   The `salary` will be updated to `75000`, and the `department` will be updated to `HR` for the employee with `employee_id = 10`.
+
+* * * * *
+
+#### **Example 4: Updating All Records in a Table (Be Careful!)**
+
+```
+UPDATE employees
+SET department = 'General';
+
+```
+
+This query updates the **`department`** column for **all rows** in the `employees` table, setting the value of `department` to `'General'`.
+
+#### Sample Result:
+
+-   All employees will now have the department set to `General`.
+
+#### **Important Considerations for `UPDATE`**:
+
+-   **`WHERE` Clause**: Always use a `WHERE` clause to limit which rows will be updated. Without it, **all rows** in the table will be updated.
+
+-   **Performance**: Updating many rows, especially in large tables, can be resource-intensive. Make sure the columns you are updating are indexed if you're applying filters on them (e.g., in the `WHERE` clause).
+
+-   **Atomicity**: The `UPDATE` statement is atomic; all updates either happen fully or not at all. If an error occurs while updating, no changes are made to the table.
+
+* * * * *
+
+### **Combining `DELETE` and `UPDATE` in Practice**
+
+#### Example: Deleting Specific Records After an Update
+
+Suppose you want to **increase the salary** of employees in the `Sales` department and then **delete employees** who have a salary above a certain threshold:
+
+```
+UPDATE employees
+SET salary = salary * 1.1
+WHERE department = 'Sales';
+
+DELETE FROM employees
+WHERE salary > 80000;
+
+```
+
+In this case:
+
+-   The first query updates the salary of all employees in the `Sales` department by **10%**.
+
+-   The second query deletes employees whose updated salary is greater than **80,000**.
+
+#### Sample Result:
+
+-   After running both queries, employees in the `Sales` department will have their salary increased by 10%, and those with a salary above 80,000 will be removed from the table.
+
+* * * * *
+
+### **Summary of Key Concepts**
+
+-   **DELETE**:
+
+    -   Removes rows from a table.
+
+    -   Be sure to use the `WHERE` clause to specify which rows to delete. Without it, all rows will be deleted.
+
+    -   **Performance Tip**: If you need to delete all rows quickly, consider using **`TRUNCATE`** instead of `DELETE`.
+
+-   **UPDATE**:
+
+    -   Modifies existing records in a table.
+
+    -   Always use the `WHERE` clause to avoid updating all rows.
+
+    -   You can update multiple columns at once.
+
+* * * * *
+
+### **Exam Power-ups for Memory**:
+
+-   **`DELETE`**: Always **use a `WHERE` clause** with `DELETE` to prevent removing all data. If you need to delete all rows, consider using **`TRUNCATE`** for better performance.
+
+-   **`UPDATE`**: Use **`WHERE`** to limit updates to specific records. It's also helpful to update multiple columns in one go (e.g., `salary` and `department`).
+
+-   **Transactional Integrity**: Both **`UPDATE`** and **`DELETE`** are atomic operations, meaning they either complete fully or not at all.
+
+* * * * *
+
+* * * * *
+
+### **1\. On Conflict Do Nothing (3:05:55)**
+
+In PostgreSQL, the **`ON CONFLICT DO NOTHING`** clause is used in **`INSERT`** statements to handle **conflicts** that arise when inserting a row that would violate a constraint (such as a **unique constraint** or a **primary key constraint**).
+
+When a conflict occurs, instead of throwing an error, **`DO NOTHING`** will simply ignore the conflicting insert and proceed without making any changes to the table.
+
+#### **Why Use `ON CONFLICT DO NOTHING`?**
+
+-   **Prevent Duplicate Inserts**: It is particularly useful when you want to avoid inserting duplicate records without raising an error.
+
+-   **Efficient Bulk Inserts**: When performing bulk inserts, you might encounter duplicate keys (e.g., inserting the same rows from multiple sources). Using **`DO NOTHING`** avoids errors from duplicate rows.
+
+#### **Syntax**:
+
+```
+INSERT INTO table_name (column1, column2, ...)
+VALUES (value1, value2, ...)
+ON CONFLICT (column_name) DO NOTHING;
+
+```
+
+-   **`column_name`**: The column(s) that are subject to a conflict (typically the unique or primary key column).
+
+-   **`DO NOTHING`**: The action to take when a conflict occurs --- no changes are made.
+
+* * * * *
+
+#### **Example 1: Inserting Data with Conflict Handling**
+
+Let's say we have a `users` table where the `email` column is unique, and we want to insert data while avoiding duplicates.
+
+```
+CREATE TABLE users (
+    user_id SERIAL PRIMARY KEY,
+    email VARCHAR(100) UNIQUE,
+    first_name VARCHAR(100),
+    last_name VARCHAR(100)
+);
+
+-- Inserting users
+INSERT INTO users (email, first_name, last_name)
+VALUES
+('john.doe@example.com', 'John', 'Doe'),
+('jane.smith@example.com', 'Jane', 'Smith')
+ON CONFLICT (email) DO NOTHING;
+
+```
+
+In this case:
+
+-   The `email` column is unique, so if an attempt is made to insert a user with an existing email, PostgreSQL will **ignore** that insertion instead of raising an error.
+
+-   The query will **insert** the users whose emails don't conflict and **do nothing** for those whose emails already exist in the table.
+
+#### Sample Result:
+
+-   If the email `'john.doe@example.com'` already exists, that row will be ignored, and only the non-conflicting rows will be inserted.
+
+* * * * *
+
+#### **Example 2: Bulk Insert with Conflict Handling**
+
+```
+INSERT INTO users (email, first_name, last_name)
+VALUES
+('john.doe@example.com', 'John', 'Doe'),
+('alice.jones@example.com', 'Alice', 'Jones'),
+('bob.brown@example.com', 'Bob', 'Brown')
+ON CONFLICT (email) DO NOTHING;
+
+```
+
+In this case:
+
+-   If `john.doe@example.com` already exists, it will be ignored, and the new users `'alice.jones@example.com'` and `'bob.brown@example.com'` will be inserted.
+
+#### Sample Result:
+
+-   Only the rows with unique emails will be inserted. Rows with duplicate emails will be skipped.
+
+* * * * *
+
+### **2\. Upsert (3:11:09)**
+
+An **Upsert** operation is a combination of an **`INSERT`** and an **`UPDATE`**. It inserts a new row if the specified key (such as a primary key or unique key) does not already exist, and it updates the existing row if the key already exists.
+
+In PostgreSQL, you can perform an **upsert** using the **`ON CONFLICT`** clause with the **`DO UPDATE`** action.
+
+#### **Why Use Upsert?**
+
+-   **Efficient Handling of Existing and New Data**: It's useful when you want to either insert new records or update existing records based on a conflict (e.g., when data already exists and needs to be updated).
+
+-   **No Need for Separate `INSERT` and `UPDATE`**: It eliminates the need to check whether a record already exists and perform either an `INSERT` or `UPDATE` accordingly.
+
+#### **Syntax**:
+
+```
+INSERT INTO table_name (column1, column2, ...)
+VALUES (value1, value2, ...)
+ON CONFLICT (column_name) DO UPDATE
+SET column1 = value1, column2 = value2, ...;
+
+```
+
+-   **`column_name`**: The column(s) that are subject to a conflict (usually a unique or primary key).
+
+-   **`DO UPDATE`**: The action to perform if a conflict occurs. The values in the specified columns are updated.
+
+* * * * *
+
+#### **Example 1: Basic Upsert**
+
+Let's say we want to upsert data into the `users` table, where the `email` column is unique. If the email already exists, we'll update the `first_name` and `last_name`.
+
+```
+INSERT INTO users (email, first_name, last_name)
+VALUES
+('john.doe@example.com', 'John', 'Doe')
+ON CONFLICT (email) DO UPDATE
+SET first_name = EXCLUDED.first_name, last_name = EXCLUDED.last_name;
+
+```
+
+-   The query tries to insert a user with the email `john.doe@example.com`. If the email already exists, the existing row will be updated with the new `first_name` and `last_name`.
+
+#### Sample Result:
+
+-   If `john.doe@example.com` already exists, the `first_name` and `last_name` will be updated with the new values.
+
+-   If it doesn't exist, a new row will be inserted.
+
+* * * * *
+
+#### **Example 2: Upsert with Multiple Columns**
+
+```
+INSERT INTO users (email, first_name, last_name)
+VALUES
+('john.doe@example.com', 'John', 'Doe'),
+('alice.jones@example.com', 'Alice', 'Jones')
+ON CONFLICT (email) DO UPDATE
+SET first_name = EXCLUDED.first_name, last_name = EXCLUDED.last_name;
+
+```
+
+In this example:
+
+-   If a conflict occurs on the `email` column, the existing record will be updated with the new `first_name` and `last_name`.
+
+-   If no conflict occurs, a new row will be inserted.
+
+#### Sample Result:
+
+-   If `john.doe@example.com` already exists, it will be updated with the new values. If not, both new rows will be inserted.
+
+* * * * *
+
+#### **Example 3: Using Upsert with Complex Updates**
+
+Let's say you have a table for **orders** with a `quantity` column, and you want to update the `quantity` if the order already exists.
+
+```
+INSERT INTO orders (order_id, product_id, quantity)
+VALUES (101, 1, 10)
+ON CONFLICT (order_id, product_id) DO UPDATE
+SET quantity = orders.quantity + EXCLUDED.quantity;
+
+```
+
+-   The query inserts a new order. If an order already exists with the same `order_id` and `product_id`, it **updates** the `quantity` by adding the existing quantity to the new quantity (i.e., it increases the quantity for that order).
+
+#### Sample Result:
+
+-   If the `order_id = 101` and `product_id = 1` already exists, the `quantity` will be updated (i.e., old `quantity + new` quantity`).
+
+-   If the combination does not exist, a new order will be inserted.
+
+* * * * *
+
+### **Summary of Key Concepts**
+
+-   **`ON CONFLICT DO NOTHING`**: Used in `INSERT` statements to avoid errors when inserting data that violates a unique constraint. It ignores conflicting rows.
+
+-   **Upsert** (`ON CONFLICT DO UPDATE`): Allows for inserting new records or updating existing records based on conflicts. It simplifies managing data without needing separate `INSERT` and `UPDATE` queries.
+
+* * * * *
+
+### **Exam Power-ups for Memory:**
+
+-   **`ON CONFLICT DO NOTHING`**: Useful for preventing duplicate records when inserting, especially in bulk operations. Avoids errors due to unique constraints.
+
+-   **Upsert (`DO UPDATE`)**: Provides a powerful way to insert new records or update existing ones with a single query, streamlining data management.
+
+-   **EXCLUDED**: In the **`DO UPDATE`** part of the upsert, **`EXCLUDED`** refers to the row that was proposed for insertion but caused the conflict.
+
+* * * * *
+
+
+* * * * *
+
+### **What is a Relationship in Databases? (3:16:41)**
+
+In relational databases, a **relationship** is a connection between two or more tables. Relationships are fundamental for organizing data in a structured manner. They allow you to represent how different pieces of data are related to one another.
+
+There are **three types of relationships** between tables:
+
+1.  **One-to-One Relationship**: A single record in one table is associated with a single record in another table.
+
+2.  **One-to-Many Relationship**: A single record in one table can be associated with multiple records in another table.
+
+3.  **Many-to-Many Relationship**: Multiple records in one table can be associated with multiple records in another table.
+
+These relationships are typically established using **foreign keys**, which are references from one table to another.
+
+* * * * *
+
+### **Foreign Keys: The Key to Relationships**
+
+A **foreign key** is a column (or a set of columns) in one table that uniquely identifies a row in another table. It's essentially a way of establishing and enforcing a relationship between two tables.
+
+-   A **primary key** in one table is referenced by a **foreign key** in another table.
+
+-   Foreign keys help enforce **referential integrity**, ensuring that the data in your database stays consistent and that you cannot insert a record into a table that doesn't correspond to a record in another table.
+
+#### **Why are Foreign Keys Important?**
+
+-   **Enforce Consistency**: They ensure that relationships between tables are maintained and that invalid data isn't inserted.
+
+-   **Data Integrity**: By enforcing relationships, foreign keys help prevent situations where a record in one table references a non-existent record in another table.
+
+* * * * *
+
+### **1\. One-to-Many Relationship**
+
+In a **one-to-many** relationship, a single record in one table can be associated with multiple records in another table. This is the most common type of relationship in databases.
+
+#### **Example 1: One-to-Many Relationship**
+
+Let's take an example where we have two tables:
+
+-   **`departments`**: Each department can have many employees.
+
+-   **`employees`**: Each employee works for one department.
+
+#### **Step 1: Create the `departments` table**
+
+```
+CREATE TABLE departments (
+    department_id SERIAL PRIMARY KEY,
+    department_name VARCHAR(100)
+);
+
+```
+
+Here, the `department_id` column is the **primary key** that uniquely identifies each department.
+
+#### **Step 2: Create the `employees` table with a foreign key**
+
+```
+CREATE TABLE employees (
+    employee_id SERIAL PRIMARY KEY,
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    department_id INT,
+    FOREIGN KEY (department_id) REFERENCES departments(department_id)
+);
+
+```
+
+In this example:
+
+-   The `employees` table has a **foreign key** `department_id`, which references the `department_id` in the `departments` table.
+
+-   This creates a **one-to-many** relationship: A department can have many employees, but each employee belongs to only one department.
+
+#### **Sample Data Insertion**
+
+```
+-- Insert departments
+INSERT INTO departments (department_name)
+VALUES ('HR'), ('Engineering'), ('Marketing');
+
+-- Insert employees with department assignments
+INSERT INTO employees (first_name, last_name, department_id)
+VALUES
+('John', 'Doe', 1),  -- John works in HR
+('Jane', 'Smith', 2),  -- Jane works in Engineering
+('Bob', 'Brown', 2);  -- Bob works in Engineering
+
+```
+
+#### Sample Result:
+
+-   **`departments` table**:
+
+```
+ department_id | department_name
+---------------+----------------
+ 1             | HR
+ 2             | Engineering
+ 3             | Marketing
+
+```
+
+-   **`employees` table**:
+
+```
+ employee_id | first_name | last_name | department_id
+-------------+------------+-----------+---------------
+ 1           | John       | Doe       | 1
+ 2           | Jane       | Smith     | 2
+ 3           | Bob        | Brown     | 2
+
+```
+
+In this example, `John` works in the `HR` department (department ID 1), while `Jane` and `Bob` work in the `Engineering` department (department ID 2). The `department_id` column in the `employees` table is the **foreign key** that links each employee to their respective department.
+
+* * * * *
+
+### **2\. One-to-One Relationship**
+
+In a **one-to-one** relationship, each record in one table is associated with exactly one record in another table. This is less common than the one-to-many relationship but can be useful in specific scenarios.
+
+#### **Example 2: One-to-One Relationship**
+
+Let's take an example where we have two tables:
+
+-   **`users`**: Each user has one profile.
+
+-   **`profiles`**: Each profile belongs to one user.
+
+#### **Step 1: Create the `users` table**
+
+```
+CREATE TABLE users (
+    user_id SERIAL PRIMARY KEY,
+    username VARCHAR(100) UNIQUE
+);
+
+```
+
+#### **Step 2: Create the `profiles` table with a foreign key**
+
+```
+CREATE TABLE profiles (
+    profile_id SERIAL PRIMARY KEY,
+    user_id INT UNIQUE,
+    bio TEXT,
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+
+```
+
+Here:
+
+-   The `profiles` table has a **foreign key** `user_id`, which references the `user_id` in the `users` table.
+
+-   The `user_id` in the `profiles` table is marked as **unique**, ensuring that each user can only have one profile.
+
+#### **Sample Data Insertion**
+
+```
+-- Insert users
+INSERT INTO users (username)
+VALUES ('john_doe'), ('jane_smith');
+
+-- Insert profiles
+INSERT INTO profiles (user_id, bio)
+VALUES (1, 'Hello, I am John. I love coding!'),
+       (2, 'Hi, I am Jane. I enjoy photography.');
+
+```
+
+#### Sample Result:
+
+-   **`users` table**:
+
+```
+ user_id | username
+---------+----------
+ 1       | john_doe
+ 2       | jane_smith
+
+```
+
+-   **`profiles` table**:
+
+```
+ profile_id | user_id | bio
+------------+---------+--------------------------------------
+ 1          | 1       | Hello, I am John. I love coding!
+ 2          | 2       | Hi, I am Jane. I enjoy photography.
+
+```
+
+Here, each user has exactly one profile. The `user_id` in the `profiles` table is the **foreign key** that links each profile to its user.
+
+* * * * *
+
+### **3\. Many-to-Many Relationship**
+
+In a **many-to-many** relationship, multiple records in one table can be related to multiple records in another table. To handle this, you typically use a **junction table** (or **bridge table**), which holds the foreign keys from both tables.
+
+#### **Example 3: Many-to-Many Relationship**
+
+Let's take an example where we have two tables:
+
+-   **`students`**: Each student can enroll in multiple courses.
+
+-   **`courses`**: Each course can have multiple students.
+
+#### **Step 1: Create the `students` table**
+
+```
+CREATE TABLE students (
+    student_id SERIAL PRIMARY KEY,
+    name VARCHAR(100)
+);
+
+```
+
+#### **Step 2: Create the `courses` table**
+
+```
+CREATE TABLE courses (
+    course_id SERIAL PRIMARY KEY,
+    course_name VARCHAR(100)
+);
+
+```
+
+#### **Step 3: Create the `enrollments` table (Junction Table)**
+
+```
+CREATE TABLE enrollments (
+    student_id INT,
+    course_id INT,
+    PRIMARY KEY (student_id, course_id),
+    FOREIGN KEY (student_id) REFERENCES students(student_id),
+    FOREIGN KEY (course_id) REFERENCES courses(course_id)
+);
+
+```
+
+In this case:
+
+-   The `enrollments` table is the **junction table** that connects `students` and `courses`.
+
+-   Both `student_id` and `course_id` are foreign keys in the `enrollments` table, referencing the `students` and `courses` tables, respectively.
+
+#### **Sample Data Insertion**
+
+```
+-- Insert students
+INSERT INTO students (name)
+VALUES ('John Doe'), ('Alice Smith'), ('Bob Brown');
+
+-- Insert courses
+INSERT INTO courses (course_name)
+VALUES ('Math 101'), ('History 201'), ('Computer Science 301');
+
+-- Enroll students in courses
+INSERT INTO enrollments (student_id, course_id)
+VALUES (1, 1), (1, 3), (2, 2), (3, 1), (3, 3);
+
+```
+
+#### Sample Result:
+
+-   **`students` table**:
+
+```
+ student_id | name
+------------+-------------
+ 1          | John Doe
+ 2          | Alice Smith
+ 3          | Bob Brown
+
+```
+
+-   **`courses` table**:
+
+```
+ course_id | course_name
+-----------+-------------
+ 1         | Math 101
+ 2         | History 201
+ 3         | Computer Science 301
+
+```
+
+-   **`enrollments` table** (Junction Table):
+
+```
+ student_id | course_id
+------------+-----------
+ 1          | 1
+ 1          | 3
+ 2          | 2
+ 3          | 1
+ 3          | 3
+
+```
+
+Here:
+
+-   **John Doe** is enrolled in **Math 101** and **Computer Science 301**.
+
+-   **Alice Smith** is enrolled in **History 201**.
+
+-   **Bob Brown** is enrolled in **Math 101** and **Computer Science 301**.
+
+* * * * *
+
+### **Adding Relationships Between Tables**
+
+To add relationships between tables, you need to:
+
+1.  Define **foreign key constraints**.
+
+2.  Use the **`REFERENCES`** keyword to establish a relationship between the foreign key column in the child table and the primary key column in the parent table.
+
+#### Example: Adding a Foreign Key to an Existing Table
+
+Let's say we already have the `employees` table (from previous examples), and we want to establish a relationship between `employees` and `departments`.
+
+```
+ALTER TABLE employees
+ADD CONSTRAINT fk_department FOREIGN KEY (department_id)
+REFERENCES departments(department_id);
+
+```
+
+This adds a foreign key constraint on the `department_id` column in the `employees` table, linking it to the `department_id` column in the `departments` table.
+
+* * * * *
+
+### **Conclusion: Relationships and Foreign Keys**
+
+-   **Relationships**: Establish how tables are connected to one another. Common types include **one-to-many**, **one-to-one**, and **many-to-many**.
+
+-   **Foreign Keys**: Used to enforce relationships between tables. A foreign key is a column in one table that references the primary key of another table.
+
+-   **One-to-Many**: A single record in one table can be related to multiple records in another table.
+
+-   **Many-to-Many**: Multiple records in one table can be related to multiple records in another table, usually handled by a junction table.
+
+* * * * *
+
+### **Exam Power-ups for Memory**:
+
+-   **Foreign Keys**: They ensure referential integrity, linking data across tables.
+
+-   **Junction Tables**: Use junction tables to implement **many-to-many** relationships.
+
+-   **One-to-Many**: Use foreign keys to implement **one-to-many** relationships (e.g., departments and employees).
+
+* * * * *
+
+
+### **1\. What is a Foreign Key Column?**
+
+A **foreign key** column in a table is a reference to the **primary key** of another table. It establishes a link between the two tables. The main role of foreign keys is to enforce **referential integrity** by ensuring that only valid values, corresponding to rows in another table, can be inserted into the foreign key column.
+
+### **2\. What Happens When You Update a Foreign Key Column?**
+
+When you update a foreign key column, you are essentially changing the value that links the record to another record in a different table. **Referential integrity** must be maintained, meaning:
+
+-   The updated foreign key value must still exist as a valid primary key in the referenced table.
+
+-   If the referenced primary key value no longer exists or is changed incorrectly, it can break the relationship and lead to **orphaned records**.
+
+* * * * *
+
+### **3\. Updating Foreign Key Columns in PostgreSQL**
+
+To **update foreign key columns**, you need to ensure that the updated value already exists in the referenced table, or the update may fail due to the foreign key constraint.
+
+#### **Steps to Update Foreign Key Columns**:
+
+1.  **Ensure the referenced value exists in the parent table.**
+
+2.  **Use the `UPDATE` statement** to change the foreign key value.
+
+3.  **Ensure the change adheres to the foreign key constraint** (i.e., the new foreign key value must be a valid primary key in the referenced table).
+
+* * * * *
+
+### **4\. Example Scenario**
+
+Let's consider the following tables and scenario:
+
+-   **`departments`** table (parent table):
+
+    -   `department_id`: Primary key
+
+    -   `department_name`
+
+-   **`employees`** table (child table):
+
+    -   `employee_id`: Primary key
+
+    -   `first_name`, `last_name`: Employee information
+
+    -   `department_id`: Foreign key linking to `departments.department_id`
+
+#### **Table Definitions**:
+
+```
+-- Create the departments table
+CREATE TABLE departments (
+    department_id SERIAL PRIMARY KEY,
+    department_name VARCHAR(100)
+);
+
+-- Create the employees table with a foreign key to departments
+CREATE TABLE employees (
+    employee_id SERIAL PRIMARY KEY,
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    department_id INT,
+    FOREIGN KEY (department_id) REFERENCES departments(department_id)
+);
+
+```
+
+* * * * *
+
+### **5\. Example 1: Updating the Foreign Key in the Employees Table**
+
+Let's say you want to change the department of an employee. You will update the **`department_id`** in the **`employees`** table, ensuring that the new department exists in the **`departments`** table.
+
+#### **Step 1: Insert some sample data**
+
+```
+-- Insert departments
+INSERT INTO departments (department_name)
+VALUES ('Sales'), ('Engineering'), ('Marketing');
+
+-- Insert employees
+INSERT INTO employees (first_name, last_name, department_id)
+VALUES
+('John', 'Doe', 1),  -- John works in Sales
+('Jane', 'Smith', 2);  -- Jane works in Engineering
+
+```
+
+At this point:
+
+-   **`John`** is in the **Sales** department (department_id = 1).
+
+-   **`Jane`** is in the **Engineering** department (department_id = 2).
+
+* * * * *
+
+#### **Step 2: Update the Foreign Key**
+
+Now, let's say that **John** has been promoted and transferred to the **Engineering** department. We need to update his `department_id` in the **`employees`** table.
+
+```
+UPDATE employees
+SET department_id = 2  -- Transfer John to the Engineering department
+WHERE first_name = 'John' AND last_name = 'Doe';
+
+```
+
+#### Sample Result:
+
+-   **`John`** will now be associated with the **Engineering** department (department_id = 2).
+
+-   **`Jane`** remains in the **Engineering** department.
+
+#### After the Update, the tables look like:
+
+-   **`departments` table**:
+
+```
+ department_id | department_name
+---------------+----------------
+ 1             | Sales
+ 2             | Engineering
+ 3             | Marketing
+
+```
+
+-   **`employees` table**:
+
+```
+ employee_id | first_name | last_name | department_id
+-------------+------------+-----------+---------------
+ 1           | John       | Doe       | 2
+ 2           | Jane       | Smith     | 2
+
+```
+
+In this case, the foreign key constraint ensures that only valid `department_id` values are allowed. If you try to update to a `department_id` that does not exist, the update will fail.
+
+* * * * *
+
+### **6\. Example 2: Invalid Update (Foreign Key Constraint Violation)**
+
+Let's attempt an invalid update where we try to assign an employee to a department that doesn't exist.
+
+```
+UPDATE employees
+SET department_id = 999  -- Invalid department_id
+WHERE first_name = 'John' AND last_name = 'Doe';
+
+```
+
+#### Error:
+
+```
+ERROR:  insert or update on table "employees" violates foreign key constraint "employees_department_id_fkey"
+DETAIL:  Key (department_id)=(999) is not present in table "departments".
+
+```
+
+In this case:
+
+-   PostgreSQL throws an error because `999` is not a valid `department_id` in the `departments` table.
+
+-   The **foreign key constraint** prevents the update because it would violate referential integrity.
+
+* * * * *
+
+### **7\. Handling Foreign Key Updates with Cascade Options**
+
+You can specify **cascading actions** when defining foreign key constraints. These actions determine what happens to the child table when the referenced record in the parent table is updated or deleted.
+
+#### **Cascading Options**:
+
+-   **`ON UPDATE CASCADE`**: Automatically updates the foreign key in the child table when the referenced primary key is updated.
+
+-   **`ON DELETE CASCADE`**: Automatically deletes records in the child table when the referenced record in the parent table is deleted.
+
+* * * * *
+
+#### **Example 3: Using `ON UPDATE CASCADE`**
+
+Let's say we want to ensure that if the **`department_id`** in the `departments` table is updated, the corresponding foreign key values in the `employees` table are also updated.
+
+```
+-- Create departments table with ON UPDATE CASCADE
+CREATE TABLE departments (
+    department_id SERIAL PRIMARY KEY,
+    department_name VARCHAR(100)
+);
+
+-- Create employees table with ON UPDATE CASCADE
+CREATE TABLE employees (
+    employee_id SERIAL PRIMARY KEY,
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    department_id INT,
+    FOREIGN KEY (department_id) REFERENCES departments(department_id) ON UPDATE CASCADE
+);
+
+```
+
+Now, if we update the `department_id` in the **`departments`** table, the corresponding `department_id` in the **`employees`** table will be automatically updated.
+
+#### **Step 1: Insert Data**
+
+```
+-- Insert departments and employees
+INSERT INTO departments (department_name) VALUES ('Sales'), ('Engineering');
+INSERT INTO employees (first_name, last_name, department_id) VALUES ('John', 'Doe', 1), ('Jane', 'Smith', 2);
+
+```
+
+#### **Step 2: Update the Primary Key in the Parent Table**
+
+Let's update the `department_id` in the **`departments`** table.
+
+```
+UPDATE departments
+SET department_id = 3
+WHERE department_name = 'Sales';
+
+```
+
+#### Sample Result:
+
+-   In this case, because of the **`ON UPDATE CASCADE`** option, all records in the **`employees`** table that had `department_id = 1` (Sales) will have their `department_id` updated to `3`.
+
+-   The **`employees`** table will automatically update the department for **John** (who was in Sales).
+
+* * * * *
+
+### **Summary of Key Concepts**
+
+-   **Foreign Keys**: Used to establish relationships between tables. A foreign key in the child table references the primary key in the parent table.
+
+-   **Referential Integrity**: Ensures that the foreign key values in the child table always correspond to valid primary key values in the parent table.
+
+-   **Updating Foreign Key Columns**: You can update a foreign key value, but it must exist in the referenced table. If you try to reference a non-existing key, the update will fail.
+
+-   **Cascading Updates**: The `ON UPDATE CASCADE` option ensures that when a primary key in the parent table is updated, the corresponding foreign keys in the child table are automatically updated as well.
+
+* * * * *
+
+### **Exam Power-ups for Memory:**
+
+-   **Foreign Key Updates**: Always ensure that the new foreign key value exists in the referenced table before updating a foreign key.
+
+-   **Referential Integrity**: Foreign keys help maintain the integrity of relationships by ensuring that the foreign key value always corresponds to a valid primary key.
+
+-   **Cascading**: Use **`ON UPDATE CASCADE`** and **`ON DELETE CASCADE`** to ensure consistency between related tables.
+
+* * * * *
+
+### **Understanding SQL Joins: A Comprehensive Guide**
+
+In SQL, a **join** is used to combine rows from two or more tables based on a related column. Joins are crucial when you want to work with data from multiple tables in a relational database. Let's go through the different types of joins available in SQL and explain them in detail, along with examples and use cases.
+
+* * * * *
+
+### **Types of SQL Joins**
+
+1.  **INNER JOIN**
+
+2.  **LEFT JOIN (or LEFT OUTER JOIN)**
+
+3.  **RIGHT JOIN (or RIGHT OUTER JOIN)**
+
+4.  **FULL JOIN (or FULL OUTER JOIN)**
+
+5.  **CROSS JOIN**
+
+6.  **SELF JOIN**
+
+* * * * *
+
+### **1\. INNER JOIN**
+
+An **INNER JOIN** returns only the rows that have matching values in both tables. If there is no match, the row is excluded from the result set.
+
+#### **Syntax**:
+
+```
+SELECT columns
+FROM table1
+INNER JOIN table2
+ON table1.column = table2.column;
+
+```
+
+#### **Example**: Inner Join between `employees` and `departments`
+
+Let's assume you have two tables:
+
+-   **`employees`** (with columns `employee_id`, `first_name`, `department_id`)
+
+-   **`departments`** (with columns `department_id`, `department_name`)
+
+```
+SELECT e.employee_id, e.first_name, d.department_name
+FROM employees e
+INNER JOIN departments d
+ON e.department_id = d.department_id;
+
+```
+
+#### **Explanation**:
+
+-   This query returns all employees along with their department names, but only those employees who have a valid `department_id` in both tables will be included.
+
+-   If an employee's `department_id` doesn't match any `department_id` in the `departments` table, they will be excluded from the result.
+
+#### **Sample Result**:
+
+```
+ employee_id | first_name | department_name
+-------------+------------+-----------------
+ 1           | John       | Sales
+ 2           | Jane       | Engineering
+ 3           | Bob        | Marketing
+
+```
+
+* * * * *
+
+### **2\. LEFT JOIN (or LEFT OUTER JOIN)**
+
+A **LEFT JOIN** (also known as **LEFT OUTER JOIN**) returns all rows from the **left table** (table1), and the matched rows from the **right table** (table2). If there is no match, the result will contain `NULL` values for columns from the **right table**.
+
+#### **Syntax**:
+
+```
+SELECT columns
+FROM table1
+LEFT JOIN table2
+ON table1.column = table2.column;
+
+```
+
+#### **Example**: Left Join between `employees` and `departments`
+
+```
+SELECT e.employee_id, e.first_name, d.department_name
+FROM employees e
+LEFT JOIN departments d
+ON e.department_id = d.department_id;
+
+```
+
+#### **Explanation**:
+
+-   This query returns all employees. If an employee does not belong to any department (i.e., no matching `department_id` in the `departments` table), the `department_name` will be `NULL` for that employee.
+
+-   Employees who don't have a department assigned will still be listed.
+
+#### **Sample Result**:
+
+```
+ employee_id | first_name | department_name
+-------------+------------+-----------------
+ 1           | John       | Sales
+ 2           | Jane       | Engineering
+ 3           | Bob        | NULL
+
+```
+
+In this case, **Bob** has no department, so the `department_name` is `NULL`.
+
+* * * * *
+
+### **3\. RIGHT JOIN (or RIGHT OUTER JOIN)**
+
+A **RIGHT JOIN** (also known as **RIGHT OUTER JOIN**) returns all rows from the **right table** (table2), and the matched rows from the **left table** (table1). If there is no match, the result will contain `NULL` values for columns from the **left table**.
+
+#### **Syntax**:
+
+```
+SELECT columns
+FROM table1
+RIGHT JOIN table2
+ON table1.column = table2.column;
+
+```
+
+#### **Example**: Right Join between `employees` and `departments`
+
+```
+SELECT e.employee_id, e.first_name, d.department_name
+FROM employees e
+RIGHT JOIN departments d
+ON e.department_id = d.department_id;
+
+```
+
+#### **Explanation**:
+
+-   This query returns all departments. If a department does not have any employees (i.e., no matching `department_id` in the `employees` table), the `employee_id` and `first_name` will be `NULL` for that department.
+
+-   If some departments have no employees, they will still appear in the result.
+
+#### **Sample Result**:
+
+```
+ employee_id | first_name | department_name
+-------------+------------+-----------------
+ 1           | John       | Sales
+ 2           | Jane       | Engineering
+ NULL        | NULL       | HR
+
+```
+
+In this case, the **`HR`** department has no employees, so the corresponding `employee_id` and `first_name` are `NULL`.
+
+* * * * *
+
+### **4\. FULL JOIN (or FULL OUTER JOIN)**
+
+A **FULL JOIN** (also known as **FULL OUTER JOIN**) returns all rows from both the **left** and **right** tables. If there is no match, the result will contain `NULL` values for the columns of the table that does not have a match.
+
+#### **Syntax**:
+
+```
+SELECT columns
+FROM table1
+FULL JOIN table2
+ON table1.column = table2.column;
+
+```
+
+#### **Example**: Full Join between `employees` and `departments`
+
+```
+SELECT e.employee_id, e.first_name, d.department_name
+FROM employees e
+FULL JOIN departments d
+ON e.department_id = d.department_id;
+
+```
+
+#### **Explanation**:
+
+-   This query returns all employees and all departments.
+
+-   If an employee is not assigned to a department, the `department_name` will be `NULL`.
+
+-   If a department has no employees, the `employee_id` and `first_name` will be `NULL`.
+
+#### **Sample Result**:
+
+```
+ employee_id | first_name | department_name
+-------------+------------+-----------------
+ 1           | John       | Sales
+ 2           | Jane       | Engineering
+ 3           | Bob        | NULL
+ NULL        | NULL       | HR
+
+```
+
+In this case, **Bob** has no department, and **HR** has no employees, so both have `NULL` values in their respective columns.
+
+* * * * *
+
+### **5\. CROSS JOIN**
+
+A **CROSS JOIN** returns the **Cartesian product** of the two tables, meaning it will return all possible combinations of rows from both tables. There is no **`ON`** condition, and every row in the left table is combined with every row in the right table.
+
+#### **Syntax**:
+
+```
+SELECT columns
+FROM table1
+CROSS JOIN table2;
+
+```
+
+#### **Example**: Cross Join between `employees` and `departments`
+
+```
+SELECT e.employee_id, e.first_name, d.department_name
+FROM employees e
+CROSS JOIN departments d;
+
+```
+
+#### **Explanation**:
+
+-   This query will return every possible combination of employees and departments.
+
+-   If there are `3` employees and `3` departments, the result will contain `3 * 3 = 9` rows.
+
+#### **Sample Result**:
+
+```
+ employee_id | first_name | department_name
+-------------+------------+-----------------
+ 1           | John       | Sales
+ 1           | John       | Engineering
+ 1           | John       | Marketing
+ 2           | Jane       | Sales
+ 2           | Jane       | Engineering
+ 2           | Jane       | Marketing
+ 3           | Bob        | Sales
+ 3           | Bob        | Engineering
+ 3           | Bob        | Marketing
+
+```
+
+* * * * *
+
+### **6\. SELF JOIN**
+
+A **SELF JOIN** is a join where a table is joined with itself. This is useful when you want to compare rows within the same table, for example, comparing managers and their subordinates within the same `employees` table.
+
+#### **Syntax**:
+
+```
+SELECT a.column1, b.column2
+FROM table_name a, table_name b
+WHERE a.common_column = b.common_column;
+
+```
+
+#### **Example**: Self Join on the `employees` Table (to find managers and their employees)
+
+```
+SELECT e1.first_name AS manager, e2.first_name AS employee
+FROM employees e1
+JOIN employees e2
+ON e1.employee_id = e2.manager_id;
+
+```
+
+#### **Explanation**:
+
+-   This query joins the `employees` table with itself to find pairs of managers and their employees.
+
+-   Each employee has a `manager_id`, which refers to their manager's `employee_id`.
+
+* * * * *
+
+### **Summary of Key Joins**
+
+1.  **INNER JOIN**: Returns only rows that have matching values in both tables.
+
+2.  **LEFT JOIN**: Returns all rows from the left table and matched rows from the right table. If no match, the result contains `NULL` values for the right table.
+
+3.  **RIGHT JOIN**: Returns all rows from the right table and matched rows from the left table. If no match, the result contains `NULL` values for the left table.
+
+4.  **FULL JOIN**: Returns rows when there is a match in either table. If no match, the result will contain `NULL` values for the table without a match.
+
+5.  **CROSS JOIN**: Returns the Cartesian product of both tables (all possible combinations of rows).
+
+6.  **SELF JOIN**: A table is joined with itself to compare rows.
+
+* * * * *
+
+### **Exam Power-ups for Memory**:
+
+-   **INNER JOIN**: It's the most common join and returns **only matching rows** between tables.
+
+-   **OUTER JOINS**: **LEFT**, **RIGHT**, and **FULL** join provide results even if one of the tables does not have a match. Think of them as **inclusive joins**.
+
+-   **CROSS JOIN**: Remember, this join gives the **Cartesian product** and can result in a large number of rows.
+
+-   **SELF JOIN**: Use it when you need to compare data **within the same table**.
+
+* * * * *
+
+---
+
+### **1. Deleting Records With Foreign Keys (3:40:53)**
+
+When dealing with **foreign keys** in relational databases, deleting records becomes a bit more complex due to the relationship between the tables. A foreign key enforces **referential integrity** by ensuring that the value in a foreign key column corresponds to an existing record in the referenced table.
+
+There are two important things to consider:
+1. **Cascading Deletes**: You can configure **cascading deletes** so that when a record is deleted from the parent table, all the related records in the child table are also deleted automatically.
+2. **Restricting Deletes**: You can restrict the deletion of records that are being referenced by foreign keys in other tables.
+
+#### **Deleting Records with Foreign Keys:**
+When trying to delete a record that is referenced by a foreign key, you have several options:
+- **Restrict**: Prevents the deletion of a record if it's being referenced.
+- **Cascade**: Deletes the record in the parent table and automatically deletes all referencing rows in the child table.
+- **Set Null**: Sets the foreign key in the child table to `NULL` when the referenced record is deleted.
+
+---
+
+#### **Syntax to Add a Foreign Key with Cascading Options**:
+You can define cascading behavior when creating or altering a foreign key constraint.
+
+**`ON DELETE CASCADE`**: Automatically deletes child rows when the parent row is deleted.
+
+```sql
+CREATE TABLE employees (
+    employee_id SERIAL PRIMARY KEY,
+    department_id INT,
+    FOREIGN KEY (department_id) REFERENCES departments(department_id) ON DELETE CASCADE
+);
+```
+
+**`ON DELETE SET NULL`**: Sets the foreign key value to `NULL` in the child table when the parent row is deleted.
+
+```sql
+CREATE TABLE employees (
+    employee_id SERIAL PRIMARY KEY,
+    department_id INT,
+    FOREIGN KEY (department_id) REFERENCES departments(department_id) ON DELETE SET NULL
+);
+```
+
+**`ON DELETE RESTRICT`**: Prevents deletion of a row if it is being referenced by a foreign key in another table.
+
+```sql
+CREATE TABLE employees (
+    employee_id SERIAL PRIMARY KEY,
+    department_id INT,
+    FOREIGN KEY (department_id) REFERENCES departments(department_id) ON DELETE RESTRICT
+);
+```
+
+---
+
+#### **Example: Deleting with Foreign Keys**
+
+Let’s consider the following tables:
+- **`departments`**: Stores department information.
+- **`employees`**: Stores employee information, with a foreign key to `departments`.
+
+```sql
+-- Create departments table
+CREATE TABLE departments (
+    department_id SERIAL PRIMARY KEY,
+    department_name VARCHAR(100)
+);
+
+-- Create employees table with a foreign key
+CREATE TABLE employees (
+    employee_id SERIAL PRIMARY KEY,
+    first_name VARCHAR(100),
+    last_name VARCHAR(100),
+    department_id INT,
+    FOREIGN KEY (department_id) REFERENCES departments(department_id) ON DELETE CASCADE
+);
+```
+
+Now, when you **delete a department**, the **employees** in that department will also be deleted automatically due to **`ON DELETE CASCADE`**.
+
+```sql
+-- Deleting a department and all employees in that department
+DELETE FROM departments WHERE department_id = 1;
+```
+
+#### Sample Result:
+- All employees in the department with `department_id = 1` will be deleted along with the department.
+
+---
+
+### **2. Exporting Query Results to CSV (3:47:27)**
+
+Exporting data to a **CSV** (Comma Separated Values) file is a common operation when working with databases. PostgreSQL provides a built-in function to export query results directly to a CSV file.
+
+#### **Syntax to Export Data to CSV**:
+
+```sql
+COPY (SELECT * FROM table_name) TO '/path/to/file.csv' DELIMITER ',' CSV HEADER;
+```
+
+- **`COPY`**: The command to copy data into or out of a table.
+- **`TO`**: Specifies the output file path.
+- **`DELIMITER ','`**: Defines the separator used in the CSV file (commas for CSV).
+- **`CSV HEADER`**: Includes the column names in the first row.
+
+---
+
+#### **Example 1: Exporting Query Results to CSV**
+
+Let’s assume we have an `employees` table, and we want to export the employee data to a CSV file.
+
+```sql
+COPY (SELECT employee_id, first_name, last_name FROM employees) 
+TO '/tmp/employees.csv' DELIMITER ',' CSV HEADER;
+```
+
+This will export the employee data to a CSV file located at **`/tmp/employees.csv`**, and the first row will contain the column headers (`employee_id`, `first_name`, `last_name`).
+
+#### **Sample CSV Output**:
+```
+employee_id,first_name,last_name
+1,John,Doe
+2,Jane,Smith
+3,Bob,Brown
+```
+
+---
+
+### **3. Serial & Sequences (3:50:42)**
+
+**Serial** and **sequences** are essential concepts in PostgreSQL for generating unique values, typically used for **primary keys**.
+
+- **`SERIAL`**: A pseudo-type in PostgreSQL that automatically generates unique integer values for a column. It is often used for auto-incrementing primary keys.
+- **Sequences**: An object in PostgreSQL that generates a series of unique numbers. The `SERIAL` type automatically uses sequences behind the scenes.
+
+---
+
+#### **1. `SERIAL` Data Type**
+
+The **`SERIAL`** type is shorthand for creating an auto-incrementing integer column. It is commonly used for primary keys.
+
+- **`SERIAL`** creates an integer column that automatically increments with each insert.
+- PostgreSQL internally uses a sequence to generate the next number.
+
+#### **Syntax for Serial Column**:
+```sql
+CREATE TABLE table_name (
+    column_name SERIAL PRIMARY KEY
+);
+```
+
+#### **Example**: Creating a Table with `SERIAL`
+
+```sql
+CREATE TABLE employees (
+    employee_id SERIAL PRIMARY KEY,
+    first_name VARCHAR(100),
+    last_name VARCHAR(100)
+);
+```
+
+Here:
+- **`employee_id`** will automatically be assigned a unique value whenever a new row is inserted into the `employees` table.
+
+---
+
+#### **2. Sequences in PostgreSQL**
+
+A **sequence** is an object that generates a series of unique numbers. Sequences are often used behind the scenes for columns defined as `SERIAL`, but they can also be used directly.
+
+#### **Creating a Sequence**:
+```sql
+CREATE SEQUENCE sequence_name
+START WITH 1
+INCREMENT BY 1
+NO MINVALUE
+NO MAXVALUE
+CACHE 1;
+```
+
+- **`START WITH`**: The initial value of the sequence.
+- **`INCREMENT BY`**: The value by which the sequence increases each time.
+- **`CACHE`**: The number of sequence numbers to cache in memory for performance.
+
+#### **Example: Using a Sequence Directly**
+
+Let’s create a sequence and use it to insert a new record into a table:
+
+```sql
+CREATE SEQUENCE employee_id_seq START WITH 1 INCREMENT BY 1;
+
+CREATE TABLE employees (
+    employee_id INT DEFAULT nextval('employee_id_seq'),
+    first_name VARCHAR(100),
+    last_name VARCHAR(100)
+);
+```
+
+In this case:
+- **`nextval('employee_id_seq')`** is used to automatically generate a new value for the `employee_id` column from the `employee_id_seq` sequence.
+
+#### **Inserting Data Using the Sequence**:
+
+```sql
+INSERT INTO employees (first_name, last_name)
+VALUES ('John', 'Doe');
+```
+
+- The `employee_id` will automatically be filled with the next value from the `employee_id_seq`.
+
+---
+
+### **Summary of Key Concepts**
+
+- **Deleting Records with Foreign Keys**: When deleting records in a table with foreign key relationships, you can use cascading or restrict options to ensure referential integrity.
+- **Exporting to CSV**: Use the `COPY` command to export query results to a CSV file for further processing or analysis.
+- **Serial and Sequences**: **`SERIAL`** is used for auto-incrementing columns, and **sequences** provide a way to generate unique numbers for primary keys.
+
+---
+
+### **Exam Power-ups for Memory**:
+
+- **Foreign Keys**: Always understand how cascading options (e.g., `ON DELETE CASCADE`) affect data when deleting records.
+- **`COPY` for CSV**: Remember the `COPY` command for exporting data to CSV. It’s a powerful way to quickly move data out of PostgreSQL.
+- **Sequences**: **`SERIAL`** automatically uses sequences. If you need more control over number generation, you can define and use **sequences** directly.
+
+---
