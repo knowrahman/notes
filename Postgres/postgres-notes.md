@@ -5759,3 +5759,427 @@ VALUES ('John', 'Doe');
 - **Sequences**: **`SERIAL`** automatically uses sequences. If you need more control over number generation, you can define and use **sequences** directly.
 
 ---
+
+
+>IMPORTANT NOTES
+
+THIS IS WRONG :
+```sql
+SELECT winner from nobel where yr BETWEEN 2000 and MAX(yr)
+```
+- because MAX(yr) means an aggregation function on the whole column sql cannot perform an aggregation of whole column every time filtering a select on a row
+
+- select works row by row
+
+- you can do something like this Select under a select
+
+- when using select under select the subsequent select must return only one result
+
+**Answer Explanation**  
+Using an aggregate function like `MAX(yr)` in a `WHERE` clause is not valid in standard SQL because an aggregate function must be computed over a result set—either in a `SELECT` list or in a `HAVING` clause (after grouping). It cannot be evaluated directly as part of a simple `WHERE` filter for row-by-row selection. 
+
+In other words, the database engine cannot simultaneously evaluate `MAX(yr)` (which depends on having read all relevant rows) and also use that value at the same time to filter rows in the exact same step. If you need to compare to `MAX(yr)`, you must do so in a subselect or a `HAVING` clause. For example:
+
+```sql
+SELECT winner
+FROM nobel
+WHERE subject = 'Peace'
+  AND yr BETWEEN 2000 AND (
+      SELECT MAX(yr) FROM nobel
+  );
+```
+
+This way, the database first obtains the maximum year for the entire table (from the subselect) and then applies the `BETWEEN` condition. However, if your intention was simply to get all Peace winners since 2000, it is easier to write `AND yr >= 2000` instead.
+
+
+
+
+
+### **Understanding `SELECT` under `SELECT` (Subqueries) in SQL**
+
+A **subquery** is a query that is nested inside another query. Subqueries can be used in several parts of a SQL statement, including the `SELECT` clause, `FROM` clause, `WHERE` clause, and more. When a **`SELECT`** statement is nested within another **`SELECT`**, it's commonly referred to as a **subquery** or **nested query**.
+
+Subqueries are useful for performing operations that need to retrieve data from another query, making your SQL queries more powerful and flexible.
+
+* * * * *
+
+### **Types of Subqueries**
+
+1.  **Subquery in the SELECT Clause**
+
+2.  **Subquery in the WHERE Clause**
+
+3.  **Subquery in the FROM Clause**
+
+4.  **Correlated Subqueries**
+
+* * * * *
+
+### **1\. Subquery in the SELECT Clause**
+
+A subquery in the **`SELECT`** clause allows you to use the result of a query as part of the column selection in the outer query. It's often used to calculate values for each row.
+
+#### **Syntax**:
+
+```
+SELECT column1,
+       (SELECT aggregate_function(column2)
+        FROM table2
+        WHERE table2.column = table1.column) AS subquery_result
+FROM table1;
+
+```
+
+#### **Example: Subquery in the SELECT Clause**
+
+Let's say we have two tables:
+
+-   **`orders`**: Contains order details (`order_id`, `customer_id`, `total_amount`).
+
+-   **`customers`**: Contains customer details (`customer_id`, `customer_name`).
+
+We want to retrieve the **total amount** for each customer's order, along with their **name**.
+
+```
+SELECT customer_name,
+       (SELECT SUM(total_amount)
+        FROM orders
+        WHERE orders.customer_id = customers.customer_id) AS total_spent
+FROM customers;
+
+```
+
+#### **Explanation**:
+
+-   The **subquery** calculates the sum of the `total_amount` for each customer by matching the `customer_id` from the `orders` table with the `customer_id` in the `customers` table.
+
+-   The result of the subquery will be displayed as `total_spent` alongside the customer's name.
+
+#### **Sample Result**:
+
+```
+ customer_name | total_spent
+---------------+-------------
+ John Doe      | 250.50
+ Jane Smith    | 320.75
+ Bob Brown     | 150.20
+
+```
+
+In this case, the total amount spent by each customer is calculated dynamically within the `SELECT` clause.
+
+* * * * *
+
+### **2\. Subquery in the WHERE Clause**
+
+A subquery in the **`WHERE`** clause is used to filter the results of the main query based on the results of the subquery. It's commonly used to compare values or check if a condition is met.
+
+#### **Syntax**:
+
+```
+SELECT column1
+FROM table1
+WHERE column1 IN (SELECT column2 FROM table2 WHERE condition);
+
+```
+
+#### **Example: Subquery in the WHERE Clause**
+
+We have two tables:
+
+-   **`employees`**: Contains `employee_id`, `employee_name`, and `salary`.
+
+-   **`departments`**: Contains `department_id` and `department_name`.
+
+Now, we want to find the employees who work in the "Sales" department. The `department_id` of the "Sales" department can be found in the `departments` table.
+
+```
+SELECT employee_name
+FROM employees
+WHERE department_id IN (SELECT department_id
+                         FROM departments
+                         WHERE department_name = 'Sales');
+
+```
+
+#### **Explanation**:
+
+-   The **subquery** retrieves the `department_id` for the "Sales" department.
+
+-   The main query then returns the names of employees whose `department_id` matches the result of the subquery.
+
+#### **Sample Result**:
+
+```
+ employee_name
+---------------
+ John Doe
+ Alice Smith
+
+```
+
+In this case, only employees who belong to the "Sales" department will be included in the result.
+
+* * * * *
+
+### **3\. Subquery in the FROM Clause**
+
+A subquery in the **`FROM`** clause is used to treat the result of a subquery as a derived table (also called a "subselect"). This is useful when you need to perform further operations on the result set of a subquery.
+
+#### **Syntax**:
+
+```
+SELECT column1
+FROM (SELECT column1, column2
+      FROM table2
+      WHERE condition) AS derived_table
+WHERE condition;
+
+```
+
+#### **Example: Subquery in the FROM Clause**
+
+Let's say we have an **`employees`** table and want to find employees who have an average salary higher than the overall average salary.
+
+```
+SELECT employee_name
+FROM (SELECT employee_name, salary
+      FROM employees
+      WHERE salary > (SELECT AVG(salary) FROM employees)) AS high_earners;
+
+```
+
+#### **Explanation**:
+
+-   The **subquery** inside the **`FROM`** clause selects employees whose salary is greater than the average salary in the company.
+
+-   The main query then returns the names of these employees.
+
+#### **Sample Result**:
+
+```
+ employee_name
+---------------
+ John Doe
+ Jane Smith
+
+```
+
+Here, the derived table `high_earners` contains only employees with a salary above the company average, and the outer query retrieves their names.
+
+* * * * *
+
+### **4\. Correlated Subqueries**
+
+A **correlated subquery** is a subquery that **depends on** the outer query. In other words, for each row in the outer query, the subquery is executed again. This is different from a regular subquery, which is executed only once and can be used independently.
+
+#### **Syntax**:
+
+```
+SELECT column1
+FROM table1 t1
+WHERE column1 = (SELECT column2
+                 FROM table2 t2
+                 WHERE t1.column1 = t2.column2);
+
+```
+
+#### **Example: Correlated Subquery**
+
+Let's consider two tables:
+
+-   **`employees`**: Contains employee information, including `employee_id`, `name`, and `salary`.
+
+-   **`departments`**: Contains department information, including `department_id` and `department_name`.
+
+We want to find all employees whose salary is above the average salary of their respective department.
+
+```
+SELECT e.employee_name
+FROM employees e
+WHERE e.salary > (SELECT AVG(salary)
+                  FROM employees
+                  WHERE department_id = e.department_id);
+
+```
+
+#### **Explanation**:
+
+-   The subquery calculates the **average salary** for each employee's **department**. The subquery references `e.department_id` from the outer query.
+
+-   The outer query then selects employees whose salary is higher than the average salary of their department.
+
+#### **Sample Result**:
+
+```
+ employee_name
+---------------
+ John Doe
+ Jane Smith
+
+```
+
+In this case, **John Doe** and **Jane Smith** earn more than the average salary in their respective departments.
+
+* * * * *
+
+### **Summary of Key Concepts**
+
+-   **Subqueries** allow you to embed a query inside another query. They are commonly used in the **`SELECT`**, **`WHERE`**, and **`FROM`** clauses.
+
+-   **Types of Subqueries**:
+
+    1.  **Subquery in the SELECT Clause**: Retrieves computed values for each row.
+
+    2.  **Subquery in the WHERE Clause**: Filters records based on the result of the subquery.
+
+    3.  **Subquery in the FROM Clause**: Treats the result of the subquery as a derived table.
+
+    4.  **Correlated Subquery**: A subquery that depends on the outer query and is executed for each row of the outer query.
+
+* * * * *
+
+### **Exam Power-ups for Memory**:
+
+-   **Subqueries in SELECT**: Useful for performing calculations on a per-row basis.
+
+-   **Subqueries in WHERE**: Help filter records based on conditions evaluated from another query.
+
+-   **Correlated Subqueries**: Think of correlated subqueries as **dynamic**, where the inner query is executed for each row in the outer query.
+
+-   **Performance**: Always consider performance when using subqueries, especially correlated subqueries, as they can be slower due to multiple executions.
+
+* * * * *
+
+### **The `ALL` Keyword in SQL**
+
+In SQL, the **`ALL`** keyword is used to compare a value to **all** values in another result set or subquery. It is often used in conjunction with comparison operators like `=`, `>`, `<`, `>=`, `<=`, and `<>` to ensure that the condition is true for **all** the rows returned by the subquery.
+
+When using `ALL`, the query checks whether the condition is true for **every** row returned by the subquery. 
+
+### **How `ALL` Works:**
+
+- **`ALL`** is typically used with **comparison operators** like `>`, `<`, `=`, `>=`, `<=`, or `<>` to compare the value against a set of results.
+- The condition must be true for **all** values in the subquery for the result to be returned.
+
+---
+
+### **1. Syntax of `ALL`**:
+
+```sql
+SELECT column
+FROM table_name
+WHERE column operator ALL (SELECT column FROM table_name);
+```
+
+- **`operator`**: The comparison operator (like `=`, `>`, `<`, etc.).
+- **`ALL`**: Compares the value against **all** the values returned by the subquery.
+
+---
+
+### **2. Example Use Cases for `ALL`**:
+
+Let's go through several examples to understand how **`ALL`** can be used effectively in SQL queries.
+
+---
+
+### **Example 1: Using `ALL` with `=` Operator**
+
+Let's say you have two tables:
+- **`employees`**: Contains employee information (`employee_id`, `name`, `salary`).
+- **`departments`**: Contains department information (`department_id`, `department_name`).
+
+You want to find all employees who earn a salary **equal to** the salary of **all employees** in a given department (e.g., the `Engineering` department).
+
+#### **Query**:
+
+```sql
+SELECT name, salary
+FROM employees
+WHERE salary = ALL (SELECT salary FROM employees WHERE department_id = 2);
+```
+
+#### **Explanation**:
+- This query will return the employees whose **salary** is equal to the salary of **all employees** in the `Engineering` department (which has `department_id = 2`).
+- If the department has multiple employees with different salaries, no employee will be selected unless their salary matches **all** salaries in that department.
+
+---
+
+### **Example 2: Using `ALL` with `>` Operator**
+
+You have an **`orders`** table with the following columns: `order_id`, `customer_id`, `order_total`.
+
+Suppose you want to find customers whose `order_total` is **greater than** **all** of the orders from a particular customer (e.g., customer with `customer_id = 5`).
+
+#### **Query**:
+
+```sql
+SELECT customer_id, order_total
+FROM orders
+WHERE order_total > ALL (SELECT order_total FROM orders WHERE customer_id = 5);
+```
+
+#### **Explanation**:
+- This query returns the customers whose **order_total** is greater than **every** order made by the customer with `customer_id = 5`.
+- It compares each row’s `order_total` against all the `order_total` values for that specific customer.
+
+---
+
+### **Example 3: Using `ALL` with `<` Operator**
+
+Suppose you want to find all employees who have a **salary lower than** the **lowest salary** in the `Engineering` department.
+
+#### **Query**:
+
+```sql
+SELECT name, salary
+FROM employees
+WHERE salary < ALL (SELECT salary FROM employees WHERE department_id = 2);
+```
+
+#### **Explanation**:
+- This query finds all employees whose **salary** is less than **all** the salaries in the `Engineering` department (`department_id = 2`).
+- If the `Engineering` department has employees with a salary of `50,000`, `55,000`, and `60,000`, then the query will return employees whose salary is lower than `50,000`.
+
+---
+
+### **Example 4: Using `ALL` with `<>` (Not Equal) Operator**
+
+You want to find all employees whose salary is **not equal to** **any** of the salaries of employees in the `Marketing` department.
+
+#### **Query**:
+
+```sql
+SELECT name, salary
+FROM employees
+WHERE salary <> ALL (SELECT salary FROM employees WHERE department_id = 3);
+```
+
+#### **Explanation**:
+- This query finds all employees whose **salary** is **not equal to** any salary in the `Marketing` department (`department_id = 3`).
+- The query compares each employee’s salary against **all** salaries in the `Marketing` department and returns those whose salary is different from all of them.
+
+---
+
+### **3. Key Points to Remember**
+
+- **`ALL`** works with **comparison operators** like `=`, `>`, `<`, `>=`, `<=`, `<>`.
+- The condition must be true for **every** row returned by the subquery.
+- You typically use **`ALL`** when you want to compare a value to a **set** of values rather than just a single value.
+
+---
+
+### **4. Performance Considerations**
+
+- **Subqueries and Performance**: Subqueries can be slow, especially when using **`ALL`**, since the subquery is executed for each row of the outer query. Consider using **joins** for better performance in some cases.
+- **Indexes**: If you're using **subqueries** frequently, ensure that the columns being referenced (such as those in the subquery's **`WHERE`** clause) are indexed, as this can significantly improve performance.
+
+---
+
+### **5. Exam Power-ups for Memory**
+
+- **`ALL` Keyword**: Think of **`ALL`** as saying "this condition must be true for **every** row in the result set." It's great for comparing a value to a set.
+- **Use with Comparison Operators**: You can pair **`ALL`** with **`=`, `>`, `<`, `>=`, `<=`, `<>`** to create powerful conditions.
+- **Subqueries**: When using **`ALL`**, the subquery is essential. Make sure the subquery returns a valid set of values to avoid errors.
+
+---
