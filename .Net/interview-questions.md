@@ -211,6 +211,159 @@ namespace HelloWorld
 
 ```
 
+### 4.1 Explain the structure of a class and getters and setters
+
+**Answer:** 
+**1\. Class Structure in C#**
+-----------------------------
+
+A class in C# is a blueprint for creating objects. It contains **fields**, **properties**, **methods**, and **constructors**.
+
+ **Basic Syntax**
+
+```
+public class Person
+{
+    // Fields
+    private string name;
+    private int age;
+
+    // Constructor
+    public Person(string name, int age)
+    {
+        this.name = name;
+        this.age = age;
+    }
+
+    // Methods
+    public void Greet()
+    {
+        Console.WriteLine($"Hi, my name is {name}, and I am {age} years old.");
+    }
+}
+
+```
+
+* * * * *
+
+**2\. Getters and Setters (Properties)**
+----------------------------------------
+
+In C#, **getters and setters** are usually implemented as **properties**, which are wrappers around fields that control access.
+
+ **2.1. Traditional Property**
+
+```
+private string name;
+
+public string Name
+{
+    get { return name; }
+    set { name = value; }
+}
+
+```
+
+You can use it like:
+
+```
+Person p = new Person();
+p.Name = "Rahman";        // Setter
+Console.WriteLine(p.Name); // Getter
+
+```
+
+* * * * *
+
+ **2.2. Auto-Implemented Property**
+
+C# allows shorthand if you don't need custom logic:
+
+```
+public string Name { get; set; }
+
+```
+
+You don't need to declare a backing field (`private string name;`)---C# handles that behind the scenes.
+
+* * * * *
+
+ **2.3. Read-only Property**
+
+If you want a property to be **read-only** (e.g., after construction):
+
+```
+public string Id { get; } = Guid.NewGuid().ToString();
+
+```
+
+Or:
+
+```
+private string id;
+public string Id
+{
+    get { return id; }
+}
+
+```
+
+* * * * *
+
+ **2.4. Property with Custom Logic**
+
+You can also add validation or logic:
+
+```
+private int age;
+public int Age
+{
+    get { return age; }
+    set
+    {
+        if (value > 0)
+            age = value;
+        else
+            throw new ArgumentException("Age must be positive");
+    }
+}
+
+```
+
+* * * * *
+
+**3\. Full Example**
+--------------------
+
+```
+public class Product
+{
+    // Auto-property
+    public string Name { get; set; }
+
+    // Custom property
+    private decimal price;
+    public decimal Price
+    {
+        get => price;
+        set => price = value >= 0 ? value : throw new ArgumentException("Price can't be negative");
+    }
+
+    // Read-only property
+    public DateTime CreatedAt { get; } = DateTime.Now;
+
+    // Method
+    public void ShowInfo()
+    {
+        Console.WriteLine($"{Name} costs {Price:C} and was added on {CreatedAt}");
+    }
+}
+
+```
+> get{}, get; these are all accessors and not the methods. That is why there is no paranthesis > with them.
+* * * * *
+
+
 ### 5. What are Value Types and Reference Types in C#?
 
 **Answer:** In C#, data types are divided into two categories: Value Types and Reference Types. This distinction affects how values are stored and manipulated within memory.
@@ -250,6 +403,163 @@ Console.WriteLine(list2.Count); // Output: 4
 ```
 
 In the value type example, changing b does not affect a because b is a separate copy. In the reference type example, list2 is not a separate copy; it's another reference to the same list object as list1, so changes made through list2 are visible when accessing list1.
+
+
+### 5.1 What are different ways you can write constructors
+
+## **1. Default Constructor**
+If you don’t define any constructor, C# provides a parameterless default constructor automatically.
+
+```csharp
+public class Car
+{
+    public string Brand;
+
+    // Default constructor (created automatically if none is written)
+    public Car() { }
+}
+```
+
+---
+
+## **2. Parameterized Constructor**
+Allows you to initialize fields or properties when you create the object.
+
+```csharp
+public class Car
+{
+    public string Brand;
+
+    public Car(string brand)
+    {
+        Brand = brand;
+    }
+}
+```
+
+**Usage:**
+```csharp
+Car myCar = new Car("Toyota");
+```
+
+---
+
+## **3. Constructor Overloading**
+Multiple constructors with different parameters.
+
+```csharp
+public class Car
+{
+    public string Brand;
+    public int Year;
+
+    public Car() { }
+
+    public Car(string brand)
+    {
+        Brand = brand;
+    }
+
+    public Car(string brand, int year)
+    {
+        Brand = brand;
+        Year = year;
+    }
+}
+```
+
+---
+
+## **4. Constructor Chaining (`this`)**
+You can call one constructor from another to avoid repeating logic.
+
+```csharp
+public class Car
+{
+    public string Brand;
+    public int Year;
+
+    public Car() : this("Unknown", 2000) { }
+
+    public Car(string brand) : this(brand, 2020) { }
+
+    public Car(string brand, int year)
+    {
+        Brand = brand;
+        Year = year;
+    }
+}
+```
+
+---
+
+## **5. Static Constructor**
+Used to initialize static fields. Called only once automatically before any static members are used.
+
+```csharp
+public class Car
+{
+    public static int Count;
+
+    static Car()
+    {
+        Count = 0;
+        Console.WriteLine("Static constructor called");
+    }
+}
+```
+
+You **can’t call or pass parameters** to a static constructor.
+
+---
+
+## **6. Using Object Initializers (Without Custom Constructor)**
+Instead of creating constructors, use this cleaner approach for setting properties.
+
+```csharp
+public class Car
+{
+    public string Brand { get; set; }
+    public int Year { get; set; }
+}
+
+// Usage
+var myCar = new Car
+{
+    Brand = "Toyota",
+    Year = 2023
+};
+```
+
+---
+
+## **7. Record Type Constructors**
+C# `record` types provide built-in constructors and immutability.
+
+```csharp
+public record Car(string Brand, int Year);
+```
+
+**Usage:**
+```csharp
+var car = new Car("Tesla", 2024);
+```
+
+---
+
+## ✅ Summary
+
+| Type                  | Purpose                                      |
+|-----------------------|----------------------------------------------|
+| Default               | No arguments                                 |
+| Parameterized         | Set values at initialization                 |
+| Overloaded            | Multiple ways to construct object            |
+| Chained               | Reuse logic among constructors               |
+| Static                | Initialize static data                       |
+| Object Initializer    | Cleaner property assignment syntax           |
+| Record Constructor    | Concise immutable class for data structures  |
+
+---
 
 ### 6. What is garbage collection in .NET?
 
