@@ -949,4 +949,929 @@ public class UserServiceTests
 - It’s common to mock database repositories, services, or other dependencies to avoid testing with real external systems like databases.
 - Use **Setup**, **Verify**, and **Return Values** to control and assert mock behavior.
 
-Would you like to explore more advanced mocking techniques or dive into how to mock other types of dependencies like APIs or external services?
+### Can You Unit Test Static Methods?
+
+Yes, you **can** unit test static methods, but they come with some challenges. Generally, static methods are harder to test and isolate because they don’t allow for easy mocking or dependency injection. This makes them more tightly coupled to their environment and difficult to replace during tests.
+
+Here’s why unit testing static methods can be challenging and how you might approach testing them.
+
+---
+
+### Challenges with Unit Testing Static Methods
+
+1. **No Dependency Injection**: 
+   - Static methods don’t rely on instances of classes, so you can’t inject mock dependencies into them. This makes it hard to isolate the behavior of the static method from other parts of the system.
+   
+2. **Global State**: 
+   - Static methods can modify or rely on global state, which can lead to side effects. If one test changes the global state, it can affect other tests, leading to flaky tests.
+   
+3. **Difficult to Mock**: 
+   - You can’t mock static methods using common mocking frameworks like **Moq**. This means you can't easily replace the static method with a mock that behaves as you want in your tests.
+
+4. **Tight Coupling**: 
+   - Static methods often tightly couple your code to specific implementations. This makes it hard to change or extend the behavior without affecting a large part of the application.
+
+---
+
+### How to Unit Test Static Methods
+
+Despite these challenges, there are a few strategies you can use to unit test static methods:
+
+1. **Refactor to Non-Static Methods (Best Practice)**:
+   - One of the best approaches is to **refactor** static methods into instance methods that can be mocked or injected with dependencies. This allows for more testable and maintainable code.
+
+2. **Use of Wrapper Classes**:
+   - If you cannot refactor the static method, you can wrap the static method inside an instance class that implements an interface. This way, you can mock the wrapper class in your unit tests.
+   
+3. **Static Method Wrapping with Delegates**:
+   - Another approach is to use **delegates** to wrap static methods. This allows you to replace the delegate with a mock or alternate implementation during tests.
+
+4. **Reflection (Limited Usage)**:
+   - In some cases, you can use **reflection** to invoke and test static methods. This is more of a workaround and can be error-prone and harder to maintain, so it should be used sparingly.
+
+---
+
+### Example of Refactoring Static Methods for Unit Testing
+
+Let’s start with a simple static method and see how it can be refactored for better testability.
+
+#### Original Static Method
+
+```csharp
+public static class MathHelper
+{
+    public static int Add(int a, int b)
+    {
+        return a + b;
+    }
+}
+```
+
+While this method is simple and easy to test, static methods are harder to mock in a larger, more complex codebase. Let's refactor it for better testability.
+
+#### Refactored to Instance Method
+
+```csharp
+public interface IMathHelper
+{
+    int Add(int a, int b);
+}
+
+public class MathHelper : IMathHelper
+{
+    public int Add(int a, int b)
+    {
+        return a + b;
+    }
+}
+```
+
+#### Unit Test for Refactored MathHelper
+
+```csharp
+using Moq;
+using Xunit;
+
+public class MathHelperTests
+{
+    private readonly IMathHelper _mathHelper;
+
+    public MathHelperTests()
+    {
+        // Use dependency injection to mock the MathHelper interface
+        var mockMathHelper = new Mock<IMathHelper>();
+        mockMathHelper.Setup(m => m.Add(It.IsAny<int>(), It.IsAny<int>())).Returns(5); // Mock behavior
+        _mathHelper = mockMathHelper.Object;
+    }
+
+    [Fact]
+    public void Add_ShouldReturnCorrectSum()
+    {
+        var result = _mathHelper.Add(2, 3);
+        result.Should().Be(5);
+    }
+}
+```
+
+Now that the static method is refactored into an instance method, you can mock and test it much more easily using Moq and other unit testing techniques.
+
+---
+
+### What If Refactoring Isn't an Option?
+
+If you **cannot** refactor the static method (e.g., it’s part of an external library or you want to avoid making large changes to existing code), here are some alternatives:
+
+#### Wrapping Static Methods in a Non-Static Class
+
+You can create a wrapper class that exposes the static method as an instance method, making it more testable.
+
+```csharp
+public class MathHelperWrapper
+{
+    public int Add(int a, int b)
+    {
+        return MathHelper.Add(a, b); // Wrap the static method in an instance method
+    }
+}
+```
+
+Now you can mock or test `MathHelperWrapper` instead of directly testing the static `MathHelper`.
+
+---
+
+### Example Using Delegates
+
+Here’s how you might wrap static methods using delegates to make them more testable:
+
+```csharp
+public class MathHelperDelegate
+{
+    private readonly Func<int, int, int> _add;
+
+    public MathHelperDelegate(Func<int, int, int> add)
+    {
+        _add = add;
+    }
+
+    public int Add(int a, int b)
+    {
+        return _add(a, b);
+    }
+}
+```
+
+In your tests, you can pass a delegate that mimics the static method's behavior:
+
+```csharp
+public class MathHelperTests
+{
+    [Fact]
+    public void Add_ShouldReturnCorrectSum()
+    {
+        var mathHelperDelegate = new MathHelperDelegate((a, b) => a + b);  // Delegate mimicking static method
+        var result = mathHelperDelegate.Add(2, 3);
+        result.Should().Be(5);
+    }
+}
+```
+
+---
+
+### When Should You Avoid Static Methods?
+
+In general, you should avoid static methods when:
+
+1. **Testability**: The method interacts with global state or is hard to mock.
+2. **Flexibility**: You need flexibility to change the behavior of the method.
+3. **Separation of Concerns**: Static methods tend to tightly couple your code. For example, they might require you to use certain global resources or state, making the code less modular and harder to maintain.
+
+---
+
+### Conclusion
+
+While it is possible to **unit test static methods**, they can introduce **tight coupling**, **global state**, and other issues that make testing harder. Whenever possible, **refactor** static methods into instance methods to make them more flexible and testable. 
+
+If refactoring isn’t feasible, you can still test static methods by using **wrappers**, **delegates**, or **reflection**, but these approaches might lead to more complicated code.
+
+### More Complex Examples of Unit Testing API Controllers with Mocked Dependencies
+
+In real-world scenarios, controllers may have more complex dependencies, such as:
+
+-   Multiple service layers (business logic, data access, etc.)
+
+-   External services or APIs
+
+-   Complex interactions (e.g., pagination, filtering)
+
+-   Error handling (exceptions, validation failures)
+
+Let's walk through a more complex example of unit testing an API controller with **multiple dependencies**, **error handling**, and **complex logic**.
+
+### Scenario: `OrderController` with Multiple Dependencies
+
+Consider an `OrderController` that handles order-related operations, such as creating an order, retrieving orders, and updating order statuses. It depends on:
+
+-   An **`IOrderService`** to handle business logic.
+
+-   A **`IProductService`** to validate products.
+
+-   A **`IPaymentService`** to handle payment processing.
+
+This example will also include **error handling** and **validation**.
+
+### 1\. **Define the Interfaces and Controller**
+
+#### IOrderService
+
+```csharp
+public interface IOrderService
+{
+    Order CreateOrder(OrderRequest orderRequest);
+    Order GetOrderById(int orderId);
+    void UpdateOrderStatus(int orderId, string status);
+}
+
+```
+
+#### IProductService
+
+```csharp
+public interface IProductService
+{
+    bool ValidateProductAvailability(int productId, int quantity);
+}
+
+```
+
+#### IPaymentService
+
+```csharp
+public interface IPaymentService
+{
+    bool ProcessPayment(PaymentDetails paymentDetails);
+}
+
+```
+
+#### OrderController
+
+```csharp
+[ApiController]
+[Route("api/[controller]")]
+public class OrderController : ControllerBase
+{
+    private readonly IOrderService _orderService;
+    private readonly IProductService _productService;
+    private readonly IPaymentService _paymentService;
+
+    public OrderController(IOrderService orderService, IProductService productService, IPaymentService paymentService)
+    {
+        _orderService = orderService;
+        _productService = productService;
+        _paymentService = paymentService;
+    }
+
+    [HttpPost("create")]
+    public ActionResult<Order> CreateOrder([FromBody] OrderRequest orderRequest)
+    {
+        if (!_productService.ValidateProductAvailability(orderRequest.ProductId, orderRequest.Quantity))
+        {
+            return BadRequest("Product not available.");
+        }
+
+        var order = _orderService.CreateOrder(orderRequest);
+
+        if (order == null)
+        {
+            return StatusCode(500, "Order creation failed.");
+        }
+
+        var paymentDetails = new PaymentDetails
+        {
+            Amount = order.TotalAmount,
+            OrderId = order.Id
+        };
+
+        var paymentSuccess = _paymentService.ProcessPayment(paymentDetails);
+
+        if (!paymentSuccess)
+        {
+            return StatusCode(500, "Payment failed.");
+        }
+
+        return CreatedAtAction(nameof(GetOrderById), new { id = order.Id }, order);
+    }
+
+    [HttpGet("{id}")]
+    public ActionResult<Order> GetOrderById(int id)
+    {
+        var order = _orderService.GetOrderById(id);
+        if (order == null)
+        {
+            return NotFound();
+        }
+
+        return Ok(order);
+    }
+
+    [HttpPut("update-status/{id}")]
+    public ActionResult UpdateOrderStatus(int id, [FromBody] string status)
+    {
+        try
+        {
+            _orderService.UpdateOrderStatus(id, status);
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ex.Message);
+        }
+    }
+}
+
+```
+
+### Explanation of `OrderController`:
+
+-   **CreateOrder**:
+
+    -   Checks product availability using `IProductService`.
+
+    -   Creates the order with `IOrderService`.
+
+    -   Processes payment using `IPaymentService`.
+
+    -   Returns appropriate status codes and messages based on the outcomes.
+
+-   **GetOrderById**:
+
+    -   Fetches an order by ID using `IOrderService`.
+
+    -   Returns `404 Not Found` if the order does not exist.
+
+-   **UpdateOrderStatus**:
+
+    -   Updates the order status using `IOrderService`.
+
+    -   Handles exceptions and returns an appropriate `500 Internal Server Error`.
+
+* * * * *
+
+### 2\. **Unit Test for `OrderController` with Mocked Dependencies**
+
+Now we will unit test the `OrderController`, mocking all dependencies (`IOrderService`, `IProductService`, and `IPaymentService`). We'll handle multiple test scenarios such as:
+
+-   Valid order creation.
+
+-   Invalid product availability.
+
+-   Payment failure.
+
+-   Order retrieval.
+
+#### Setting Up the Test Project
+
+Make sure you have the following NuGet packages:
+
+```
+dotnet add package Moq
+dotnet add package xunit
+dotnet add package FluentAssertions
+dotnet add package Microsoft.AspNetCore.Mvc.Testing
+
+```
+
+#### Unit Test for `OrderController`
+
+```csharp
+using Moq;
+using FluentAssertions;
+using Xunit;
+using Microsoft.AspNetCore.Mvc;
+
+public class OrderControllerTests
+{
+    private readonly Mock<IOrderService> _mockOrderService;
+    private readonly Mock<IProductService> _mockProductService;
+    private readonly Mock<IPaymentService> _mockPaymentService;
+    private readonly OrderController _controller;
+
+    public OrderControllerTests()
+    {
+        _mockOrderService = new Mock<IOrderService>();
+        _mockProductService = new Mock<IProductService>();
+        _mockPaymentService = new Mock<IPaymentService>();
+
+        _controller = new OrderController(_mockOrderService.Object, _mockProductService.Object, _mockPaymentService.Object);
+    }
+
+    [Fact]
+    public void CreateOrder_ShouldReturnBadRequest_WhenProductNotAvailable()
+    {
+        // Arrange: Mock product validation to return false
+        _mockProductService.Setup(service => service.ValidateProductAvailability(It.IsAny<int>(), It.IsAny<int>())).Returns(false);
+
+        // Act: Call CreateOrder
+        var orderRequest = new OrderRequest { ProductId = 1, Quantity = 2 };
+        var result = _controller.CreateOrder(orderRequest);
+
+        // Assert: Verify that BadRequest is returned
+        result.Should().BeOfType<BadRequestObjectResult>();
+        var badRequestResult = result as BadRequestObjectResult;
+        badRequestResult.StatusCode.Should().Be(400);
+        badRequestResult.Value.Should().Be("Product not available.");
+    }
+
+    [Fact]
+    public void CreateOrder_ShouldReturnInternalServerError_WhenOrderCreationFails()
+    {
+        // Arrange: Mock product availability and order creation
+        _mockProductService.Setup(service => service.ValidateProductAvailability(It.IsAny<int>(), It.IsAny<int>())).Returns(true);
+        _mockOrderService.Setup(service => service.CreateOrder(It.IsAny<OrderRequest>())).Returns((Order)null); // Simulate failure
+
+        // Act: Call CreateOrder
+        var orderRequest = new OrderRequest { ProductId = 1, Quantity = 2 };
+        var result = _controller.CreateOrder(orderRequest);
+
+        // Assert: Verify that StatusCode 500 is returned
+        result.Should().BeOfType<ObjectResult>();
+        var objectResult = result as ObjectResult;
+        objectResult.StatusCode.Should().Be(500);
+        objectResult.Value.Should().Be("Order creation failed.");
+    }
+
+    [Fact]
+    public void CreateOrder_ShouldReturnCreated_WhenPaymentSucceeds()
+    {
+        // Arrange: Mock product validation, order creation, and payment success
+        var mockOrder = new Order { Id = 1, TotalAmount = 100 };
+        _mockProductService.Setup(service => service.ValidateProductAvailability(It.IsAny<int>(), It.IsAny<int>())).Returns(true);
+        _mockOrderService.Setup(service => service.CreateOrder(It.IsAny<OrderRequest>())).Returns(mockOrder);
+        _mockPaymentService.Setup(service => service.ProcessPayment(It.IsAny<PaymentDetails>())).Returns(true);
+
+        // Act: Call CreateOrder
+        var orderRequest = new OrderRequest { ProductId = 1, Quantity = 2 };
+        var result = _controller.CreateOrder(orderRequest);
+
+        // Assert: Verify that CreatedAtAction is returned
+        result.Should().BeOfType<CreatedAtActionResult>();
+        var createdResult = result as CreatedAtActionResult;
+        createdResult.StatusCode.Should().Be(201);
+        createdResult.RouteValues["id"].Should().Be(mockOrder.Id);
+    }
+
+    [Fact]
+    public void GetOrderById_ShouldReturnNotFound_WhenOrderDoesNotExist()
+    {
+        // Arrange: Mock the order service to return null
+        _mockOrderService.Setup(service => service.GetOrderById(It.IsAny<int>())).Returns((Order)null);
+
+        // Act: Call GetOrderById
+        var result = _controller.GetOrderById(1);
+
+        // Assert: Verify that NotFound is returned
+        result.Should().BeOfType<NotFoundResult>();
+    }
+
+    [Fact]
+    public void UpdateOrderStatus_ShouldReturnInternalServerError_WhenExceptionOccurs()
+    {
+        // Arrange: Mock the order service to throw an exception
+        _mockOrderService.Setup(service => service.UpdateOrderStatus(It.IsAny<int>(), It.IsAny<string>())).Throws(new Exception("Database error"));
+
+        // Act: Call UpdateOrderStatus
+        var result = _controller.UpdateOrderStatus(1, "Shipped");
+
+        // Assert: Verify that StatusCode 500 is returned
+        result.Should().BeOfType<ObjectResult>();
+        var objectResult = result as ObjectResult;
+        objectResult.StatusCode.Should().Be(500);
+        objectResult.Value.Should().Be("Database error");
+    }
+}
+
+```
+
+
+---
+
+Unit testing **asynchronous methods** in ASP.NET Core controllers is similar to testing synchronous methods, but with a few additional considerations, such as handling `Task`-based methods, using `async`/`await`, and ensuring that the results are verified correctly.
+
+Let’s break down the process of **unit testing asynchronous methods** in controllers, focusing on scenarios like mocking asynchronous service methods, verifying results, and handling timeouts or delays.
+
+### Steps for Unit Testing Async Methods
+
+1. **Ensure Proper Async Usage**: 
+   - Ensure your controller action methods are **asynchronous** (using `async`/`await`) and return a `Task` (e.g., `Task<ActionResult>`, `Task<IActionResult>`).
+   
+2. **Mock Async Service Methods**: 
+   - If the controller depends on services that return `Task` or `Task<T>`, you'll need to mock the service methods as asynchronous methods using `Moq`.
+   
+3. **Write Unit Tests for Async Methods**:
+   - Unit test the controller by calling async methods and awaiting their results to ensure the controller behaves correctly.
+
+---
+
+### Example: Unit Testing Async Controller Methods
+
+Let’s walk through an example where we have an **`OrderController`** with **async** methods that interact with an asynchronous service layer.
+
+### 1. **Define the Async Controller and Dependencies**
+
+#### IOrderService
+
+```csharp
+public interface IOrderService
+{
+    Task<Order> GetOrderByIdAsync(int orderId);
+    Task<Order> CreateOrderAsync(OrderRequest orderRequest);
+    Task UpdateOrderStatusAsync(int orderId, string status);
+}
+```
+
+#### OrderController (with Async Methods)
+
+```csharp
+[ApiController]
+[Route("api/[controller]")]
+public class OrderController : ControllerBase
+{
+    private readonly IOrderService _orderService;
+
+    public OrderController(IOrderService orderService)
+    {
+        _orderService = orderService;
+    }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<Order>> GetOrderByIdAsync(int id)
+    {
+        var order = await _orderService.GetOrderByIdAsync(id);
+        if (order == null)
+        {
+            return NotFound();
+        }
+
+        return Ok(order);
+    }
+
+    [HttpPost("create")]
+    public async Task<ActionResult<Order>> CreateOrderAsync([FromBody] OrderRequest orderRequest)
+    {
+        var order = await _orderService.CreateOrderAsync(orderRequest);
+
+        if (order == null)
+        {
+            return StatusCode(500, "Order creation failed.");
+        }
+
+        return CreatedAtAction(nameof(GetOrderByIdAsync), new { id = order.Id }, order);
+    }
+
+    [HttpPut("update-status/{id}")]
+    public async Task<ActionResult> UpdateOrderStatusAsync(int id, [FromBody] string status)
+    {
+        try
+        {
+            await _orderService.UpdateOrderStatusAsync(id, status);
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, ex.Message);
+        }
+    }
+}
+```
+
+In this controller:
+- **`GetOrderByIdAsync`**: Fetches an order by ID.
+- **`CreateOrderAsync`**: Creates a new order.
+- **`UpdateOrderStatusAsync`**: Updates the status of an order.
+
+The controller methods are asynchronous (`async`/`await`), and the dependencies return `Task<T>`.
+
+---
+
+### 2. **Unit Test Async Controller Methods**
+
+Now, let’s write unit tests for these async methods. We’ll use **Moq** to mock the asynchronous service methods and **FluentAssertions** for assertions.
+
+#### Setting Up the Test Project
+
+Make sure you have the following NuGet packages:
+```bash
+dotnet add package Moq
+dotnet add package xunit
+dotnet add package FluentAssertions
+dotnet add package Microsoft.AspNetCore.Mvc.Testing
+```
+
+#### Unit Test for `OrderController`
+
+```csharp
+using Moq;
+using FluentAssertions;
+using Xunit;
+using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
+
+public class OrderControllerTests
+{
+    private readonly Mock<IOrderService> _mockOrderService;
+    private readonly OrderController _controller;
+
+    public OrderControllerTests()
+    {
+        // Arrange: Initialize the mock service and the controller
+        _mockOrderService = new Mock<IOrderService>();
+        _controller = new OrderController(_mockOrderService.Object);
+    }
+
+    [Fact]
+    public async Task GetOrderByIdAsync_ReturnsOk_WhenOrderExists()
+    {
+        // Arrange: Mock the service method to return a sample order
+        var mockOrder = new Order { Id = 1, TotalAmount = 100 };
+        _mockOrderService.Setup(service => service.GetOrderByIdAsync(1)).ReturnsAsync(mockOrder);
+
+        // Act: Call GetOrderByIdAsync
+        var result = await _controller.GetOrderByIdAsync(1);
+
+        // Assert: Verify that OkObjectResult is returned
+        var okResult = result as OkObjectResult;
+        okResult.Should().NotBeNull();
+        okResult.StatusCode.Should().Be(200);
+        okResult.Value.Should().BeEquivalentTo(mockOrder);
+    }
+
+    [Fact]
+    public async Task GetOrderByIdAsync_ReturnsNotFound_WhenOrderDoesNotExist()
+    {
+        // Arrange: Mock the service method to return null
+        _mockOrderService.Setup(service => service.GetOrderByIdAsync(1)).ReturnsAsync((Order)null);
+
+        // Act: Call GetOrderByIdAsync
+        var result = await _controller.GetOrderByIdAsync(1);
+
+        // Assert: Verify that NotFoundResult is returned
+        result.Should().BeOfType<NotFoundResult>();
+    }
+
+    [Fact]
+    public async Task CreateOrderAsync_ReturnsCreated_WhenOrderIsSuccessfullyCreated()
+    {
+        // Arrange: Mock the service method to return a new order
+        var newOrder = new Order { Id = 1, TotalAmount = 100 };
+        var orderRequest = new OrderRequest { ProductId = 1, Quantity = 2 };
+        _mockOrderService.Setup(service => service.CreateOrderAsync(orderRequest)).ReturnsAsync(newOrder);
+
+        // Act: Call CreateOrderAsync
+        var result = await _controller.CreateOrderAsync(orderRequest);
+
+        // Assert: Verify that CreatedAtActionResult is returned
+        var createdResult = result as CreatedAtActionResult;
+        createdResult.Should().NotBeNull();
+        createdResult.StatusCode.Should().Be(201);
+        createdResult.RouteValues["id"].Should().Be(newOrder.Id);
+    }
+
+    [Fact]
+    public async Task CreateOrderAsync_ReturnsInternalServerError_WhenOrderCreationFails()
+    {
+        // Arrange: Mock the service method to return null
+        var orderRequest = new OrderRequest { ProductId = 1, Quantity = 2 };
+        _mockOrderService.Setup(service => service.CreateOrderAsync(orderRequest)).ReturnsAsync((Order)null);
+
+        // Act: Call CreateOrderAsync
+        var result = await _controller.CreateOrderAsync(orderRequest);
+
+        // Assert: Verify that StatusCode 500 is returned
+        var objectResult = result as ObjectResult;
+        objectResult.Should().NotBeNull();
+        objectResult.StatusCode.Should().Be(500);
+        objectResult.Value.Should().Be("Order creation failed.");
+    }
+
+    [Fact]
+    public async Task UpdateOrderStatusAsync_ReturnsInternalServerError_WhenExceptionOccurs()
+    {
+        // Arrange: Mock the service method to throw an exception
+        _mockOrderService.Setup(service => service.UpdateOrderStatusAsync(It.IsAny<int>(), It.IsAny<string>()))
+            .ThrowsAsync(new Exception("Database error"));
+
+        // Act: Call UpdateOrderStatusAsync
+        var result = await _controller.UpdateOrderStatusAsync(1, "Shipped");
+
+        // Assert: Verify that StatusCode 500 is returned
+        var objectResult = result as ObjectResult;
+        objectResult.Should().NotBeNull();
+        objectResult.StatusCode.Should().Be(500);
+        objectResult.Value.Should().Be("Database error");
+    }
+}
+```
+
+### Key Points:
+
+1. **Mocking Async Methods**: 
+   - We mock the async methods in the service using `ReturnsAsync()`. This allows the mocked service to return a `Task<T>` asynchronously, simulating real service behavior.
+   
+   Example:  
+   ```csharp
+   _mockOrderService.Setup(service => service.GetOrderByIdAsync(1)).ReturnsAsync(mockOrder);
+   ```
+
+2. **Awaiting Results**:
+   - For async methods, we **`await`** the result of controller actions to ensure the asynchronous execution is handled correctly in the test.
+   
+3. **Verifying the Correct Result**:
+   - We verify that the controller’s result is an `OkObjectResult`, `NotFoundResult`, `CreatedAtActionResult`, or `ObjectResult` based on the expected status codes.
+   
+4. **Exception Handling**:
+   - The `UpdateOrderStatusAsync` test simulates an exception in the service layer, and we ensure the controller returns a `500 Internal Server Error` when an exception occurs.
+
+5. **FluentAssertions**:
+   - We use **FluentAssertions** to assert the expected results, making the assertions more readable and expressive (e.g., `.Should().Be(200)`).
+
+---
+
+### Conclusion
+
+Unit testing **asynchronous** methods in API controllers involves:
+- Mocking async service methods using `Moq`'s `ReturnsAsync()` to simulate asynchronous behavior.
+- Using `await` to handle asynchronous execution in your tests.
+- Asserting the correct behavior based on expected outcomes (status codes, return values).
+
+By following these principles, you can ensure your async controller methods are correctly tested, handling both success and failure scenarios effectively.
+
+
+
+### Test-Driven Development (TDD) and Its Best Practices
+
+**Test-Driven Development (TDD)** is a software development methodology where tests are written before the actual code is implemented. The main goal of TDD is to write only the code necessary to pass the tests, which results in cleaner, more maintainable, and well-tested code.
+
+### TDD Cycle: **Red-Green-Refactor**
+
+The TDD cycle consists of three main steps:
+
+1. **Red**: Write a test for a new functionality. The test will fail because the functionality doesn’t exist yet.
+2. **Green**: Write the minimal code necessary to make the test pass. The focus is on making the test pass, not writing the perfect solution.
+3. **Refactor**: Once the test passes, clean up the code. This step focuses on improving the code structure, reducing duplication, and enhancing readability while keeping the tests passing.
+
+### Key Principles of TDD:
+
+1. **Write Tests First**: The core of TDD is that tests are written before the actual code. This helps ensure that the code meets the requirements and encourages developers to think about the functionality before writing the implementation.
+   
+2. **Small Steps**: Break down the functionality into small steps. This makes it easier to write tests and ensures the tests cover small, manageable units of functionality.
+
+3. **Refactor Safely**: With a comprehensive suite of tests, refactoring becomes safer because you can verify that the code still works after any changes.
+
+4. **Frequent Testing**: As you write each small piece of functionality, you write tests to validate that piece. This leads to frequent test execution and ensures that each piece of functionality is well-covered.
+
+5. **Test for Behavior, Not Implementation**: Write tests based on expected behavior rather than implementation details. This makes tests more flexible and robust.
+
+---
+
+### Example of TDD Process
+
+Let’s walk through a simple example of TDD in a real-world scenario: a **`Calculator`** class that performs basic arithmetic operations.
+
+#### Step 1: **Red** (Write a failing test)
+
+Before implementing the `Add` method in the `Calculator` class, we write a test for it:
+
+```csharp
+public class CalculatorTests
+{
+    [Fact]
+    public void Add_ShouldReturnCorrectSum()
+    {
+        // Arrange
+        var calculator = new Calculator();
+
+        // Act
+        var result = calculator.Add(2, 3);
+
+        // Assert
+        result.Should().Be(5);
+    }
+}
+```
+
+At this point, the test fails because the `Calculator` class and the `Add` method do not exist yet.
+
+#### Step 2: **Green** (Write minimal code to pass the test)
+
+Now, we implement the `Add` method to make the test pass:
+
+```csharp
+public class Calculator
+{
+    public int Add(int x, int y)
+    {
+        return x + y;
+    }
+}
+```
+
+After implementing this minimal code, the test should now pass successfully.
+
+#### Step 3: **Refactor** (Improve the code)
+
+Now that the test passes, you can look for any improvements or refactor opportunities. For this simple example, there might not be much to refactor. But in more complex scenarios, this could involve cleaning up duplicate code, improving naming conventions, or making the code more efficient.
+
+---
+
+### Best Practices for TDD
+
+1. **Start with Simple Tests**: Begin by writing simple, focused tests for individual pieces of functionality. Don’t try to write large, complex tests upfront.
+
+2. **Test Small Units of Work**: Write tests for small pieces of functionality, like methods or functions. This makes it easier to isolate bugs and focus on one thing at a time.
+
+3. **Write Tests for Behavior, Not Implementation**: Focus on testing the expected behavior of the code, not its internal implementation. This makes tests more robust to changes in implementation.
+
+4. **Refactor After Every Green**: Always clean up and refactor your code after your tests pass. This ensures your code stays clean and maintainable.
+
+5. **Avoid Over-Engineering**: Don’t write code for edge cases or try to solve every potential problem upfront. Write just enough code to pass the test, and then refactor as necessary.
+
+6. **Keep Tests Independent**: Each test should be independent of others. This ensures that if one test fails, it doesn’t affect the others.
+
+7. **Run Tests Frequently**: Run your tests frequently as you write code. This helps catch errors early and gives you quick feedback on your progress.
+
+8. **Write Meaningful Tests**: Make sure your tests are clear and meaningful. They should describe the behavior of the system and should be easy to understand. Use descriptive names for your test methods.
+
+9. **Use Mocks and Stubs**: When testing, it’s often useful to mock dependencies (e.g., databases, external services) to isolate the component you're testing. This helps ensure that the test is focused on the behavior of the component, not its dependencies.
+
+10. **Test Boundary Conditions and Edge Cases**: While it’s tempting to focus on "happy path" tests, it’s important to also test edge cases, boundary conditions, and error handling to ensure robustness.
+
+11. **Fail Fast**: When a test fails, fix it immediately. Don’t let a failing test linger in the test suite for too long.
+
+---
+
+### Example: More Complex TDD Example with Dependencies
+
+Consider a service that calculates discounts based on customer data and product information. This service might have dependencies like `ICustomerService` and `IProductService`.
+
+#### Step 1: **Write the Failing Test**
+
+Let’s start by writing a test for the discount calculation:
+
+```csharp
+public class DiscountServiceTests
+{
+    [Fact]
+    public void CalculateDiscount_ShouldApplyCorrectDiscountForCustomer()
+    {
+        // Arrange
+        var mockCustomerService = new Mock<ICustomerService>();
+        var mockProductService = new Mock<IProductService>();
+        var discountService = new DiscountService(mockCustomerService.Object, mockProductService.Object);
+        var customer = new Customer { Id = 1, Status = "Gold" };
+        var product = new Product { Id = 101, Price = 100 };
+
+        mockCustomerService.Setup(service => service.GetCustomerById(1)).Returns(customer);
+        mockProductService.Setup(service => service.GetProductById(101)).Returns(product);
+
+        // Act
+        var discount = discountService.CalculateDiscount(1, 101);
+
+        // Assert
+        discount.Should().Be(20); // Assuming 20% discount for "Gold" customers
+    }
+}
+```
+
+#### Step 2: **Write the Code to Make the Test Pass**
+
+Now, we implement the `DiscountService` and the required dependencies:
+
+```csharp
+public class DiscountService
+{
+    private readonly ICustomerService _customerService;
+    private readonly IProductService _productService;
+
+    public DiscountService(ICustomerService customerService, IProductService productService)
+    {
+        _customerService = customerService;
+        _productService = productService;
+    }
+
+    public decimal CalculateDiscount(int customerId, int productId)
+    {
+        var customer = _customerService.GetCustomerById(customerId);
+        var product = _productService.GetProductById(productId);
+
+        if (customer.Status == "Gold")
+        {
+            return product.Price * 0.20m; // 20% discount for Gold customers
+        }
+
+        return 0;
+    }
+}
+```
+
+#### Step 3: **Refactor**
+
+After the test passes, we can refactor the code. For example, we can move the discount logic to a separate method if it becomes more complex, but for now, the logic is simple.
+
+---
+
+### Benefits of TDD
+
+1. **Improved Code Quality**: By writing tests first, you ensure that your code meets the requirements and is testable from the start. This leads to fewer bugs and better-designed code.
+   
+2. **Refactor-Friendly**: With a comprehensive suite of tests, you can refactor your code without worrying about breaking existing functionality.
+
+3. **Documentation**: Tests act as live documentation for your code, making it easier for others to understand the expected behavior of your system.
+
+4. **Confidence in Code Changes**: Since you run tests frequently, you can be confident that changes you make to your code won’t break existing functionality.
+
+---
+
+### Conclusion
+
+Test-Driven Development (TDD) helps you write clean, maintainable, and testable code. By following the **Red-Green-Refactor** cycle, you ensure that your code meets the requirements while keeping it flexible for future changes. TDD encourages you to focus on behavior and make small, incremental improvements, leading to higher code quality and fewer defects.
+
