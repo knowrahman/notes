@@ -39,4 +39,3 @@ While this is mostly a personal note archive, feel free to open issues or discus
 
 Thanks for stopping by! If you find this repo helpful, consider giving it a star ⭐ and sharing it with others who might benefit.
 
-```
