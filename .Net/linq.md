@@ -1514,3 +1514,52 @@ foreach (var name in productNames)
 - **Composite Queries and Method Chaining**: Build complex queries by combining multiple LINQ methods in a fluent, readable way.
 - **Null Handling**: Safely handle `null` values in your queries using `DefaultIfEmpty` and the null-coalescing operator (`??`).
 
+
+
+---
+
+Examples
+
+You can convert the given LINQ query into **method syntax** (method chaining) by using the appropriate LINQ extension methods (`Select`, `Where`, and `Let` equivalent). Here's how you can rewrite the query:
+
+### Original Query (Query Syntax):
+```csharp
+var sqNo = from int Number in arr1
+           let SqrNo = Number * Number
+           where SqrNo > 20
+           select new { Number, SqrNo };
+```
+
+### Equivalent Method Syntax (Method Chaining):
+```csharp
+var sqNo = arr1
+    .Select(Number => new { Number, SqrNo = Number * Number })  // Compute SqrNo
+    .Where(x => x.SqrNo > 20);  // Filter out where SqrNo is greater than 20
+```
+
+### Explanation:
+1. **`Select(Number => new { Number, SqrNo = Number * Number })`**: This is equivalent to the `let` clause in query syntax. It projects each element (`Number`) in the array and computes the square (`SqrNo`).
+2. **`Where(x => x.SqrNo > 20)`**: This filters the elements where `SqrNo` is greater than 20.
+
+You can also iterate through the result using a `foreach` loop to print the numbers and their squared values.
+
+### Example:
+```csharp
+var arr1 = new List<int> { 2, 4, 5, 3, 6 };
+
+var sqNo = arr1
+    .Select(Number => new { Number, SqrNo = Number * Number })
+    .Where(x => x.SqrNo > 20);
+
+foreach (var item in sqNo)
+{
+    Console.WriteLine($"Number: {item.Number}, SqrNo: {item.SqrNo}");
+}
+```
+
+### Sample Output:
+```
+Number: 5, SqrNo: 25
+Number: 6, SqrNo: 36
+```
+
