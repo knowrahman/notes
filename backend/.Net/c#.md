@@ -3120,3 +3120,110 @@ finally
 
 ---
 
+
+Excellent question, Rahman.
+
+### Short answer:
+**No**, in C# you **cannot override a method unless it is marked as `virtual`, `abstract`, or `override`** in the base class.
+
+---
+
+## Why?
+
+C# uses **explicit control** for method overriding to avoid accidental behavior changes.
+
+So to allow a derived class to **override** a method, the base method must be declared with one of these keywords:
+
+- `virtual` → allows optional override
+- `abstract` → must be overridden
+- `override` → overrides a method already marked as virtual/abstract in a base class
+
+---
+
+## Example: Method **not** marked virtual
+
+```csharp
+public class Parent
+{
+    public void Show()
+    {
+        Console.WriteLine("Parent.Show()");
+    }
+}
+
+public class Child : Parent
+{
+    public override void Show() // ❌ Error
+    {
+        Console.WriteLine("Child.Show()");
+    }
+}
+```
+
+**Error:**
+```
+'Child.Show()': cannot override inherited member 'Parent.Show()' because it is not marked virtual, abstract, or override
+```
+
+---
+
+## How to make it overridable
+
+Add the `virtual` keyword to the base method:
+
+```csharp
+public class Parent
+{
+    public virtual void Show()
+    {
+        Console.WriteLine("Parent.Show()");
+    }
+}
+
+public class Child : Parent
+{
+    public override void Show()
+    {
+        Console.WriteLine("Child.Show()");
+    }
+}
+```
+
+Now it's valid.
+
+---
+
+## Related: `new` keyword
+
+You **can hide** the base class method using the `new` keyword, but this is **not overriding** — it's method hiding (shadowing).
+
+```csharp
+public class Child : Parent
+{
+    public new void Show()
+    {
+        Console.WriteLine("Child.Show()");
+    }
+}
+```
+
+Now:
+
+```csharp
+Parent obj = new Child();
+obj.Show(); // Output: Parent.Show()
+```
+
+Why? Because the method is not overridden — it's just hidden.
+
+---
+
+## Summary
+
+| Action            | Allowed without `virtual`? | Result                        |
+|-------------------|----------------------------|-------------------------------|
+| `override` method | ❌ No                      | Compile error                 |
+| `new` method      | ✅ Yes                     | Method hiding (not polymorphic) |
+
+---
+
