@@ -1110,3 +1110,515 @@ You can now:
 * Standardize the image across Lambda and ECS
 
 ---
+
+
+In the **Serverless Framework**, the term **"package"** refers to the **deployment artifact** that contains everything your service needs to deploy and run on AWS (or another cloud provider). This includes your:
+
+* Lambda function code
+* Dependencies (e.g., `node_modules`, Python packages)
+* `serverless.yml` configuration
+* Layers (if defined)
+* Any custom files or folders you've included manually
+
+---
+
+## Why is Packaging Important?
+
+When you deploy your Serverless application using:
+
+```bash
+serverless deploy
+```
+
+The framework **packages** your service into a **zip file** and uploads it to AWS so that it can be used by your Lambda functions.
+
+---
+
+## Key Concepts of `package` in Serverless Framework
+
+### 1. **Default Packaging**
+
+By default, Serverless:
+
+* Zips **each Lambda function** and its dependencies separately (if you're using `package.individually: true`)
+* Or, zips **all functions together** into a single artifact (`package.individually: false`)
+
+The zip file(s) is/are:
+
+* Stored in `.serverless/` directory
+* Uploaded to S3 behind the scenes during deployment
+
+---
+
+### 2. **Customize Packaging with `package` block in `serverless.yml`**
+
+You can configure the package behavior using the `package:` property in your `serverless.yml`.
+
+#### a. **Exclude files/folders** from the package:
+
+```yaml
+package:
+  exclude:
+    - node_modules/**
+    - test/**
+    - README.md
+```
+
+#### b. **Include specific files/folders:**
+
+```yaml
+package:
+  include:
+    - src/**
+    - config.json
+```
+
+#### c. **Use `package.individually` for function-specific packages:**
+
+```yaml
+package:
+  individually: true
+```
+
+Each function is packaged and deployed **independently**, which:
+
+* Speeds up deployment of unchanged functions
+* Reduces deployment size
+
+---
+
+### 3. **Pre-Built Artifacts**
+
+You can also use a **pre-packaged artifact**:
+
+```yaml
+functions:
+  hello:
+    handler: handler.hello
+    package:
+      artifact: path/to/hello.zip
+```
+
+This is helpful when:
+
+* You build your code externally (e.g., CI/CD pipeline)
+* You want **complete control** over what's zipped and deployed
+
+---
+
+## Summary
+
+| Term                          | Meaning in Serverless Framework                                            |
+| ----------------------------- | -------------------------------------------------------------------------- |
+| `package`                     | The deployment bundle for your service or function                         |
+| `.serverless/`                | Local folder where Serverless stores zipped artifacts before deployment    |
+| `package.individually`        | Package each Lambda function separately (vs. one package for all)          |
+| `package.include` / `exclude` | Fine-tune which files are added or ignored in the deployment package       |
+| `package.artifact`            | Use your own zip file instead of letting Serverless build it automatically |
+
+---
+
+## Exam Power-Up 💡
+
+* In **Serverless Framework**, a **package** is the zipped code + dependencies deployed to AWS
+* Use `package.individually: true` to speed up large multi-function deployments
+* Exclude unnecessary files (e.g., tests, docs) to reduce deployment size
+* Use `artifact` to supply your own zip (e.g., from a CI/CD build step)
+
+---
+
+## Would you like a working example of a `serverless.yml` that uses custom packaging settings?
+
+Here’s a **fully working `serverless.yml` example** that shows how to use the `package` configuration in the **Serverless Framework** — including:
+
+* Multiple functions
+* Packaging them **individually**
+* Custom includes/excludes
+* Pre-built artifact usage
+
+---
+
+### Example Directory Structure:
+
+```
+/my-service
+  ├── handler.js
+  ├── emailHandler.js
+  ├── orderHandler.js
+  ├── config/
+  │     └── settings.json
+  ├── utils/
+  │     └── helper.js
+  ├── test/
+  ├── README.md
+  ├── serverless.yml
+```
+
+---
+
+### `serverless.yml`
+
+```yaml
+service: order-service
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: ap-southeast-2
+
+package:
+  individually: true       # Package each function separately
+  exclude:
+    - test/**
+    - README.md
+    - "*.log"
+  include:
+    - config/settings.json # Include config file globally
+
+functions:
+  createOrder:
+    handler: orderHandler.create
+    package:
+      include:
+        - utils/helper.js  # Only include this helper for this function
+
+  sendConfirmationEmail:
+    handler: emailHandler.send
+    package:
+      artifact: artifacts/email-handler.zip  # Use a prebuilt package
+
+  getStatus:
+    handler: handler.getStatus
+    package:
+      exclude:
+        - utils/**         # Exclude utils for this function only
+```
+
+---
+
+### What This Configuration Does:
+
+| Function                | Source File       | Packaging Behavior                                                            |
+| ----------------------- | ----------------- | ----------------------------------------------------------------------------- |
+| `createOrder`           | `orderHandler.js` | Includes `utils/helper.js`, `config/settings.json`, excludes tests and README |
+| `sendConfirmationEmail` | `emailHandler.js` | **Uses a pre-built zip** file located at `artifacts/email-handler.zip`        |
+| `getStatus`             | `handler.js`      | Excludes the `utils/` folder entirely                                         |
+
+---
+
+### Key Notes:
+
+* `individually: true` ensures each function is deployed separately. This:
+
+  * **Reduces deployment size**
+  * Speeds up updates (if only one function changes)
+* You can **override global includes/excludes per function**
+* Using `artifact` is helpful when:
+
+  * You're compiling TypeScript or bundling with Webpack
+  * You're building with GitHub Actions or CodeBuild
+
+---
+
+## Would you like a TypeScript version of this example or how to use Webpack to optimize your packaging as well?
+
+Here’s a **TypeScript version** of a Serverless Framework project, showing how to configure **custom packaging** using `serverless.yml`. This includes:
+
+* TypeScript handlers
+* `serverless-esbuild` plugin for bundling
+* Custom includes and excludes
+* `individually: true` packaging
+
+---
+
+## 📁 Example Project Structure
+
+```
+/order-service
+├── src/
+│   ├── handlers/
+│   │   ├── createOrder.ts
+│   │   ├── getStatus.ts
+│   │   └── emailHandler.ts
+│   ├── utils/
+│   │   └── logger.ts
+│   └── config/
+│       └── settings.json
+├── test/
+├── package.json
+├── tsconfig.json
+├── serverless.yml
+```
+
+---
+
+## 📦 Install Required Packages
+
+Run:
+
+```bash
+npm install --save-dev serverless-esbuild typescript
+```
+
+---
+
+## 🧠 `serverless.yml`
+
+```yaml
+service: order-service
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: ap-southeast-2
+
+plugins:
+  - serverless-esbuild
+
+package:
+  individually: true
+  exclude:
+    - test/**
+    - "*.md"
+
+functions:
+  createOrder:
+    handler: src/handlers/createOrder.handler
+    package:
+      include:
+        - src/utils/logger.ts
+        - src/config/settings.json
+
+  getStatus:
+    handler: src/handlers/getStatus.handler
+    package:
+      exclude:
+        - src/utils/**
+
+  sendConfirmationEmail:
+    handler: src/handlers/emailHandler.handler
+    package:
+      artifact: artifacts/email-handler.zip # Pre-zipped artifact from CI/CD
+```
+
+---
+
+## ⚙️ `tsconfig.json`
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "lib": ["ES2020"],
+    "rootDir": "src",
+    "outDir": "dist",
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*.ts"]
+}
+```
+
+---
+
+## 📦 `package.json`
+
+```json
+{
+  "name": "order-service",
+  "scripts": {
+    "build": "tsc",
+    "deploy": "serverless deploy"
+  },
+  "devDependencies": {
+    "serverless-esbuild": "^1.43.0",
+    "typescript": "^5.3.3"
+  }
+}
+```
+
+---
+
+## 🧪 Optional: Example Handler
+
+```ts
+// src/handlers/createOrder.ts
+import { APIGatewayProxyHandler } from 'aws-lambda';
+
+export const handler: APIGatewayProxyHandler = async (event) => {
+  console.log("Creating order...");
+  return {
+    statusCode: 200,
+    body: JSON.stringify({ message: "Order created!" })
+  };
+};
+```
+
+---
+
+## Summary Power-Up 💡
+
+* Use **serverless-esbuild** to bundle TypeScript automatically (no need to run `tsc` manually).
+* `package.individually: true` helps reduce deployment size and speeds up CI/CD.
+* Include or exclude specific files for each function using the `package` block.
+* Use pre-built `.zip` files with `artifact` for production deployments via CI/CD pipelines.
+
+---
+Great question! Understanding the differences between **environment variables**, **custom variables**, and **parameters** in the **Serverless Framework** is key for building flexible, secure, and maintainable applications.
+
+Let’s break them down clearly.
+
+---
+
+## 1. **Environment Variables (`environment`)**
+
+Environment variables are:
+
+* Injected into the **Lambda function's runtime environment**
+* Accessible **in your code** using `process.env` (Node.js)
+
+### Where to define:
+
+```yaml
+functions:
+  hello:
+    handler: handler.hello
+    environment:
+      TABLE_NAME: my-dynamo-table
+      LOG_LEVEL: debug
+```
+
+Now inside your code:
+
+```js
+const table = process.env.TABLE_NAME;
+const logLevel = process.env.LOG_LEVEL;
+```
+
+### Scope:
+
+* Can be defined at **provider level** (global for all functions)
+* Or at **function level** (overrides or adds to global)
+
+---
+
+## 2. **Custom Variables (`custom`)**
+
+Custom variables are:
+
+* Defined in the `custom:` block of `serverless.yml`
+* **Not exposed** to your Lambda function
+* Used **internally by Serverless Framework** for templating and reuse
+
+### Where to define:
+
+```yaml
+custom:
+  tableName: my-dynamo-table
+  region: us-east-1
+```
+
+### Where to use:
+
+```yaml
+provider:
+  environment:
+    TABLE_NAME: ${self:custom.tableName}
+    REGION: ${self:custom.region}
+```
+
+So you're **not duplicating strings** everywhere — and can change `tableName` in one place.
+
+---
+
+## 3. **Parameters (`--param`) \[Framework v3+]**
+
+Parameters are:
+
+* Values passed **from the CLI** or `.env` files at **deploy time**
+* Used for **secure, dynamic values** like secrets, DB URLs, etc.
+* Available in `serverless.yml` via `${param:...}`
+
+### Example:
+
+```bash
+serverless deploy --param="stage=prod" --param="dbUrl=postgres://..."
+```
+
+In `serverless.yml`:
+
+```yaml
+provider:
+  environment:
+    DB_URL: ${param:dbUrl}
+```
+
+### Can also use `.env`:
+
+```
+PARAM_DB_URL=postgres://user:pass@host
+```
+
+And reference with:
+
+```yaml
+provider:
+  environment:
+    DB_URL: ${param:DB_URL}
+```
+
+---
+
+## 🔍 Comparison Table
+
+| Feature                  | Description                              | Scope                | Accessible in Lambda?        | Use Case                                  |
+| ------------------------ | ---------------------------------------- | -------------------- | ---------------------------- | ----------------------------------------- |
+| **Environment Variable** | Injected into function runtime           | provider or function | ✅ Yes                        | Accessing values like table names, tokens |
+| **Custom Variable**      | Internal config for Serverless Framework | Entire file          | ❌ No                         | Templating, centralizing strings          |
+| **Parameter**            | Runtime values passed via CLI/env        | Deploy-time          | ✅ If mapped to `environment` | Secrets, stage-specific values            |
+
+---
+
+## Example All-in-One
+
+```yaml
+service: my-service
+
+custom:
+  stage: ${opt:stage, 'dev'}
+  tableName: user-table-${self:custom.stage}
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  environment:
+    TABLE_NAME: ${self:custom.tableName}
+    SECRET_TOKEN: ${param:secretToken}
+    REGION: ${opt:region, 'us-east-1'}
+
+functions:
+  getUser:
+    handler: src/handler.getUser
+```
+
+---
+
+### Then deploy like:
+
+```bash
+serverless deploy --stage prod --param="secretToken=mySecret123"
+```
+
+---
+
+## Summary Power-Up 💡
+
+* **environment** → exposed in code as `process.env.X`
+* **custom** → reusable variables within `serverless.yml`
+* **param** → passed at deploy time, used for secrets/config, **not stored**
+
+---
