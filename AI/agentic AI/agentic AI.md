@@ -1742,3 +1742,255 @@ Do you want the next step to:
 2. switch back to IoT now and apply this same engine to devices?
 
 Reply with **1 or 2**.
+
+
+## Mini-Project 6: Intent extraction with structured JSON + schema validation (finance example)
+
+Goal
+Replace the “mock” interpretIntent with a pipeline that produces a validated Intent object every time, using strict JSON + runtime validation. Still dry-run. Still no execution.
+
+What you’ll learn here
+
+* How to define an intent contract (schema) that the model must obey
+* How to validate and safely reject/repair invalid model output
+* How to force “clarify” instead of guessing
+* How this later plugs into LangChain (but we’ll keep it framework-free for now)
+
+---
+
+## Step 1: Define the schema with Zod
+
+```ts
+import { z } from "zod";
+
+export const IntentSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("balance_query"),
+    confidence: z.number().min(0).max(1),
+    needsClarification: z.literal(false),
+  }),
+
+  z.object({
+    kind: z.literal("transfer"),
+    confidence: z.number().min(0).max(1),
+
+    // Natural language can be incomplete; we allow optional fields
+    toPayee: z.string().optional(),     // name or payee id (we’ll resolve later)
+    amount: z.number().positive().optional(), // dollars
+
+    needsClarification: z.boolean(),
+    clarificationQuestion: z.string().optional(),
+  }),
+
+  z.object({
+    kind: z.literal("transaction_query"),
+    confidence: z.number().min(0).max(1),
+    needsClarification: z.boolean(),
+    fromDate: z.string().optional(), // ISO date later
+    toDate: z.string().optional(),
+    clarificationQuestion: z.string().optional(),
+  }),
+
+  z.object({
+    kind: z.literal("refund"),
+    confidence: z.number().min(0).max(1),
+    needsClarification: z.boolean(),
+    transactionId: z.string().optional(),
+    reasonCode: z.enum(["DUPLICATE", "FRAUD", "NOT_RECEIVED", "OTHER"]).optional(),
+    clarificationQuestion: z.string().optional(),
+  }),
+]);
+
+export type Intent = z.infer<typeof IntentSchema>;
+```
+
+Key point
+The schema allows incomplete info, but it forces the model to explicitly say needsClarification true and provide a clarificationQuestion when it’s missing required details.
+
+---
+
+## Step 2: Add a “safe parse” wrapper
+
+This ensures your system never crashes on model output.
+
+```ts
+export function parseIntent(jsonText: string): { ok: true; intent: Intent } | { ok: false; error: string } {
+  try {
+    const obj = JSON.parse(jsonText);
+    const result = IntentSchema.safeParse(obj);
+
+    if (!result.success) {
+      return { ok: false, error: result.error.message };
+    }
+
+    return { ok: true, intent: result.data };
+  } catch {
+    return { ok: false, error: "Invalid JSON" };
+  }
+}
+```
+
+---
+
+## Step 3: Add a post-validator for “clarify correctness”
+
+Schema validation checks shape. You also want behavioral rules like “transfer must have amount and payee unless clarification is required”.
+
+```ts
+export function enforceClarifyRules(intent: Intent): Intent {
+  if (intent.kind === "transfer") {
+    const missingPayee = !intent.toPayee;
+    const missingAmount = intent.amount === undefined;
+
+    if (missingPayee || missingAmount) {
+      return {
+        ...intent,
+        confidence: Math.min(intent.confidence, 0.6),
+        needsClarification: true,
+        clarificationQuestion:
+          missingPayee && missingAmount
+            ? "Who should I send money to, and how much in AUD?"
+            : missingPayee
+              ? "Who should I send money to?"
+              : "How much in AUD should I send?",
+      };
+    }
+  }
+
+  if (intent.kind === "refund") {
+    if (!intent.transactionId) {
+      return {
+        ...intent,
+        confidence: Math.min(intent.confidence, 0.6),
+        needsClarification: true,
+        clarificationQuestion: "Which transaction do you want to refund? Provide the transaction ID.",
+      };
+    }
+    if (!intent.reasonCode) {
+      return {
+        ...intent,
+        confidence: Math.min(intent.confidence, 0.6),
+        needsClarification: true,
+        clarificationQuestion: "What is the reason? (DUPLICATE, FRAUD, NOT_RECEIVED, OTHER)",
+      };
+    }
+  }
+
+  return intent;
+}
+```
+
+Important pattern
+Even if the model outputs something “valid”, your system can still force clarify if it’s not actionable.
+
+---
+
+## Step 4: Replace interpretIntent with an LLM-backed function (still framework-free)
+
+Right now, we’ll define the interface and a mock implementation. Later you’ll swap in an actual model call (OpenAI/Anthropic) and later still we’ll wrap it with LangChain.
+
+```ts
+type LlmClient = {
+  generateIntentJson: (userMessage: string) => Promise<string>;
+};
+
+export async function interpretIntentWithLlm(
+  userMessage: string,
+  llm: LlmClient
+): Promise<{ intent: Intent; raw: string }> {
+  const raw = await llm.generateIntentJson(userMessage);
+
+  const parsed = parseIntent(raw);
+  if (!parsed.ok) {
+    // Fail closed: ask clarification rather than guessing
+    const fallback: Intent = {
+      kind: "transfer",
+      confidence: 0.2,
+      needsClarification: true,
+      clarificationQuestion: "I couldn’t understand that safely. What would you like to do?",
+    };
+    return { intent: fallback, raw };
+  }
+
+  const intent = enforceClarifyRules(parsed.intent);
+  return { intent, raw };
+}
+```
+
+---
+
+## Step 5: The prompt contract for the model (works for any provider)
+
+This is the exact behavior you want from the model: output only JSON, matching the schema, and do not guess.
+
+```ts
+export function buildIntentPrompt(userMessage: string): string {
+  return `
+You are an intent extraction engine for a finance app.
+
+Return ONLY valid JSON. No markdown. No extra text.
+
+You must output exactly one of these shapes:
+
+1) balance_query:
+{"kind":"balance_query","confidence":0.0-1.0,"needsClarification":false}
+
+2) transfer:
+{"kind":"transfer","toPayee":"string optional","amount":number optional,"confidence":0.0-1.0,"needsClarification":true/false,"clarificationQuestion":"string optional"}
+
+3) transaction_query:
+{"kind":"transaction_query","fromDate":"optional","toDate":"optional","confidence":0.0-1.0,"needsClarification":true/false,"clarificationQuestion":"string optional"}
+
+4) refund:
+{"kind":"refund","transactionId":"optional","reasonCode":"optional (DUPLICATE|FRAUD|NOT_RECEIVED|OTHER)","confidence":0.0-1.0,"needsClarification":true/false,"clarificationQuestion":"string optional"}
+
+Rules:
+- Do NOT guess missing required information.
+- If details are missing, set needsClarification=true and ask one precise question in clarificationQuestion.
+- Use AUD as assumed currency unless user specifies otherwise.
+- Confidence must be lower when the request is ambiguous.
+
+User message:
+${JSON.stringify(userMessage)}
+`.trim();
+}
+```
+
+---
+
+## Step 6: Wire it into the existing workflow
+
+Replace your old interpretIntent call with interpretIntentWithLlm.
+
+* interpret_intent state becomes: call LLM → parse → enforceClarifyRules
+* everything else stays the same
+
+That’s the whole point: clean boundaries.
+
+---
+
+## Quick test cases you should run (mentally for now)
+
+1. “What’s my balance?”
+   Expected: balance_query, needsClarification false
+
+2. “Send $50 to Ahmed”
+   Expected: transfer, toPayee “Ahmed”, amount 50, needsClarification false (or true if you want payeeId later)
+
+3. “Send money to Ahmed”
+   Expected: transfer, needsClarification true, question asks for amount
+
+4. “Refund my last payment”
+   Expected: refund, needsClarification true, asks for transactionId
+
+---
+
+## Next step options
+
+Option A
+Add a repair loop: if JSON invalid, ask the model once more to output corrected JSON (still safe, still validated).
+
+Option B
+Introduce LangChain just for this intent extraction step (model + prompt + structured output), keeping the rest framework-free.
+
+Do you want A or B next?
