@@ -3,6 +3,9 @@
 Notes on building AI features on AWS — what each service actually is,
 when to reach for it, and the pitfalls that cost time.
 
+> Working toward **AWS Certified Generative AI Developer – Professional (AIP-C01)**.
+> Start with the [learning plan](./learning-plan.md) — this file is the topic index.
+
 ---
 
 ## The mental model
