@@ -164,101 +164,400 @@ You will not do the maths. You just need to know it's the ruler used to measure
 
 ## Part 3 — The dials (inference parameters)
 
-### Temperature
-
-How much the model is allowed to improvise. Typically 0 to 1.
-
-- **Low (0–0.2)** — picks the most likely next token almost every time. Predictable, repetitive.
-- **High (0.8–1)** — more willing to pick a less likely token. Varied, creative, riskier.
-
-**Example.** Prompt: *"The capital of France is..."*
-- Temperature 0 → "Paris." Every single time.
-- Temperature 1 → still usually "Paris", but now capable of wandering off into a
-  sentence about French history you didn't ask for.
-
-Practical rule:
-
-| Task | Temperature |
-|---|---|
-| Extracting JSON, classifying, answering from a document | **low** — you want the same answer every time |
-| Product names, marketing copy, brainstorming | **high** — you want variety |
-
-> **Remember:** sheet music vs. jazz. Low temperature plays the notes as written.
+These are the knobs you set on every request. They are worth real time — they come up
+constantly on the exam, and getting them wrong is the most common cause of "the model is
+behaving weirdly" in production.
 
 ---
 
-### Top-p (nucleus sampling)
+### First: how the model actually picks a word
 
-Instead of considering every possible next token, only consider the most likely ones
-that together add up to probability `p`.
+None of the dials make sense until you see what they operate on.
 
-**Example.** The model's candidates for the next token are `Paris (91%)`, `Lyon (4%)`,
-`Berlin (2%)`, `banana (0.01%)`... With `top_p = 0.95`, everything past the 95% mark is
-discarded — `banana` can never be picked, no matter how high the temperature goes.
+At every single step, the model does **not** pick a word. It produces a **probability for
+every possible next token** — the whole vocabulary, tens of thousands of entries, each with
+a score.
 
-> **Remember:** **temperature reshapes the dice. Top-p decides how many sides the dice has.**
-> Tune one or the other — not both at once. You'll just confuse yourself.
+Say the prompt is:
 
----
+> *"For caching in AWS, the best service is"*
 
-### Top-k
+The model's next-token probabilities might look like this:
 
-Same idea, but a fixed count instead of a probability: only consider the `k` most likely
-tokens. `top_k = 50` → only ever the top 50 candidates.
+| Candidate | Probability | Running total |
+|---|---|---|
+| `ElastiCache` | 55% | 0.55 |
+| `DynamoDB` | 20% | 0.75 |
+| `CloudFront` | 12% | 0.87 |
+| `S3` | 6% | 0.93 |
+| `Redis` | 4% | 0.97 |
+| `Aurora` | 2% | 0.99 |
+| `Lambda` | 0.8% | 0.998 |
+| `banana` | 0.2% | 1.000 |
 
----
+Now something has to choose one. **That choosing is what the dials control**, and they run
+in a fixed order:
 
-### Max tokens
-
-A hard cap on how long the **output** can be.
-
-**The classic beginner trap:** this does *not* tell the model to be brief. It lets the
-model run and then **cuts it off mid-sentence** when the budget runs out.
-
-**Example.** `max_tokens = 20` with *"Explain how DynamoDB works"* gives you:
-> "DynamoDB is a fully managed NoSQL database service provided by AWS that offers single-digit"
-
-...and stops. Right there.
-
-> **Remember:** it's a circuit breaker, not an instruction. If you want a short answer,
-> *ask* for a short answer in the prompt — and set max_tokens as a safety net.
-
----
-
-### Stop sequences
-
-Text that, when generated, halts the output immediately.
-
-**Example.** Generating one side of a dialogue, you set a stop sequence of `"User:"` so
-the model can't helpfully invent the user's next line too.
-
----
-
-### Non-determinism
-
-Same input, different output. This is normal and expected, because the model is
-*sampling* from probabilities rather than looking up an answer.
-
-Even at temperature 0 you get *very consistent*, not *guaranteed identical*.
-
-**Why this matters more than anything else in this file:**
-
-```js
-// Every backend test you have ever written:
-expect(add(2, 2)).toBe(4);          // ✅ true forever
-
-// The same instinct, applied to a model:
-expect(ask("Summarise this")).toBe("A summary of the text.");   // ❌ meaningless
+```
+  raw probabilities
+        ↓
+  1. TEMPERATURE   — reshapes the list (sharpen it, or flatten it)
+        ↓
+  2. TOP-K / TOP-P — throw candidates away (shrink the list)
+        ↓
+  3. SAMPLE        — roll a weighted die among the survivors
+        ↓
+  one token
 ```
 
-You cannot assert equality on model output. You have to test differently — did it return
-valid JSON? does it contain the key fact? did another model score it as correct? That's
-what "evaluation" means, and it's an entire exam domain.
+Then it appends that token and does the whole thing again for the next one.
 
-> **Remember:** you have spent your whole career on components that return the same thing
-> for the same input. This one doesn't. Almost every "best practice" in this
-> certification — guardrails, validation, evals, retries, human review — exists to build a
-> reliable system on top of an unreliable component.
+> **Remember:** temperature **reshapes** the list. Top-k and top-p **shorten** it.
+> Then one is picked at random, weighted by what's left.
+
+---
+
+### Temperature — how much it's allowed to improvise
+
+Temperature stretches or squashes the probability list *before* anything is discarded.
+
+Using the same list above (numbers illustrative, to show the shape):
+
+| Candidate | temp 0.2 (sharpened) | temp 1.0 (unchanged) | temp 1.5 (flattened) |
+|---|---|---|---|
+| `ElastiCache` | **97%** | 55% | 33% |
+| `DynamoDB` | 2% | 20% | 20% |
+| `CloudFront` | 0.7% | 12% | 15% |
+| `S3` | 0.2% | 6% | 11% |
+| `Redis` | ~0% | 4% | 9% |
+
+- **Low temperature** → the leader gets more dominant. Nearly always the same answer.
+- **High temperature** → the gap narrows. Underdogs become genuinely likely.
+
+**Temperature 0** is a special case: skip the die entirely and always take the top token.
+This is called *greedy decoding*.
+
+> ⚠️ **Gotcha worth remembering:** at temperature 0, **top-p and top-k do nothing.**
+> You've already committed to taking the single highest token, so it doesn't matter how many
+> candidates survived the filter. Tuning top_p alongside temperature 0 is a no-op — a very
+> common source of "I changed the setting and nothing happened".
+
+**Real examples:**
+
+| Prompt | temp 0 | temp 1.2 |
+|---|---|---|
+| *"The capital of France is"* | "Paris." every time | "Paris." (nearly always — one candidate is just overwhelming) |
+| *"Name for a coffee shop:"* | "The Daily Grind" every time | "Bean There", "Steam & Stone", "Kaapi Corner"… |
+| *"Extract the date as JSON"* | `{"date":"2026-08-25"}` | `{"date":"2026-08-25"}` — but occasionally with a chatty preamble that breaks your parser |
+
+That last row is the practical point. **Anything you're going to parse should be at
+temperature 0.**
+
+> ⚠️ **High temperature doesn't just add creativity — it adds drift.** Each slightly-odd
+> token makes the next one odder, because the model conditions on what it already wrote. A
+> long generation at temperature 1.5 can start sane and end somewhere strange.
+
+---
+
+### Top-k — keep the k best candidates
+
+Sort by probability, keep the top `k`, throw the rest away.
+
+From our list:
+
+```
+top_k = 3   →  ElastiCache, DynamoDB, CloudFront          ← the rest can never be picked
+top_k = 1   →  ElastiCache                                 ← same as temperature 0
+top_k = 50  →  everything here (the list is only 8 long)
+```
+
+**Its weakness: `k` is a fixed number that ignores how confident the model is.**
+
+Two contexts, same `top_k = 50`:
+
+**Context A — the model is certain.** *"The capital of France is"*
+```
+Paris  99%   ← this is the answer
+Lyon   0.2%
+Nice   0.1%
+...    a long tail of near-zero junk
+```
+`top_k = 50` faithfully keeps 50 candidates. Forty-nine of them are garbage that should
+never have been on the table.
+
+**Context B — the model is wide open.** *"A good name for a coffee shop is"*
+```
+The   2%
+Bean  1.8%
+Brew  1.7%
+Kaapi 1.5%
+...   two hundred equally reasonable options
+```
+`top_k = 50` chops the list at 50 — discarding option #51, which was just as good as #50.
+
+> **Remember:** top-k is a blunt instrument. It keeps the same number of options whether
+> the model is certain or has no idea.
+
+---
+
+### Top-p (nucleus sampling) — keep the best candidates that add up to p
+
+Instead of a fixed count, walk down the sorted list adding up probabilities, and stop as
+soon as the running total reaches `p`. Keep everything you walked past; discard the rest.
+
+From our list (the **Running total** column above is exactly what you use):
+
+```
+top_p = 0.75  →  ElastiCache (0.55), DynamoDB (0.75)             = 2 candidates
+top_p = 0.90  →  ElastiCache, DynamoDB, CloudFront (0.87),
+                 + S3 (0.93)                                      = 4 candidates
+top_p = 0.99  →  everything down to Aurora (0.99)                 = 6 candidates
+```
+
+> Note the `top_p = 0.90` case: the total is 0.87 after CloudFront, which hasn't reached
+> 0.90 yet — so S3 is pulled in too and the total overshoots to 0.93. The rule is
+> **"the smallest set that sums to *at least* p"**, so the token that crosses the line is
+> included. Don't expect it to land exactly on p.
+
+**Now the same two contexts, with `top_p = 0.9`:**
+
+**Context A — certain.** Paris is at 99%, which already clears 0.9 on its own.
+→ **1 candidate survives.** All the junk is gone automatically.
+
+**Context B — wide open.** No single token is anywhere near 0.9, so it keeps taking
+candidates until the total gets there.
+→ **~200 candidates survive.** The variety is preserved.
+
+**Same setting. Completely different behaviour — because it adapts to the model's confidence.**
+That is the entire reason top-p is generally preferred over top-k.
+
+> **Remember:** **top-k asks "how many?" Top-p asks "how much?"**
+> Top-k is a fixed headcount. Top-p is a confidence threshold that resizes itself.
+
+---
+
+### Top-k vs. top-p at a glance
+
+| | Top-k | Top-p |
+|---|---|---|
+| Cuts by | A fixed **count** | A cumulative **probability** |
+| Model is confident | Still keeps k options (mostly junk) | Keeps very few — often just one |
+| Model is uncertain | Chops arbitrarily at k | Keeps as many as needed |
+| Adapts to context | ❌ No | ✅ Yes |
+| Typical use | Rarely tuned by hand | The default filter |
+
+---
+
+### Don't tune all three at once
+
+They stack. If you set `temperature=1.2`, `top_k=40` and `top_p=0.9`, the surviving set is
+the **intersection** — whichever filter is more restrictive wins — and you will not be able
+to reason about which change caused which effect.
+
+**Practical advice:**
+
+1. **Tune temperature. Leave top-p at its default and ignore top-k.** This covers ~95% of real use.
+2. Reach for top-p only when temperature alone isn't enough — e.g. you want variety but the
+   model keeps producing one genuinely bad outlier. Lower top-p to cut the tail without
+   flattening everything.
+3. Change **one dial at a time** and actually look at ~10 outputs before deciding. With a
+   non-deterministic system, judging a change from a single sample is guessing.
+
+---
+
+### Max tokens — a budget on the output
+
+A hard ceiling on how many tokens the model may generate. **Output only** — it has nothing
+to do with the size of your input.
+
+**It is a circuit breaker, not an instruction.** The model does not know about it and does
+not plan around it. It generates normally and gets **cut off mid-word** when the budget runs out.
+
+```
+Prompt:      "Explain how DynamoDB works"
+max_tokens:  20
+
+Output:      "DynamoDB is a fully managed NoSQL database service provided by
+              AWS that offers single-digit"
+```
+
+That's it. No wrap-up, no final sentence. It just stops.
+
+**The failure that will actually bite you — truncated JSON:**
+
+```json
+{"name": "Rahman", "skills": ["AWS", "Node
+```
+
+`JSON.parse()` throws. Your Lambda 500s. And here's the sting: **you already paid for every
+one of those wasted tokens.** A truncated response is money spent on something unusable, and
+the retry costs you again.
+
+**Four things people get wrong:**
+
+1. **It doesn't make output shorter — it makes output *stop*.** If you want brevity, *ask*
+   in the prompt ("Answer in under 50 words") and use max_tokens as a safety net behind it.
+2. **A high max_tokens is not expensive by itself.** It's a ceiling, not a reservation —
+   you're billed for tokens actually generated. Setting 4000 and getting 200 costs you 200.
+   So being stingy buys you nothing except truncation risk.
+3. **It counts toward the context window.** Input + output must fit together, so a huge
+   max_tokens on an already-huge prompt can be rejected before generation even starts.
+4. **It's your latency ceiling.** Tokens are produced one at a time, so max_tokens sets the
+   worst-case response time. Genuinely useful for sizing an API Gateway or Lambda timeout.
+
+**How to pick it:** estimate the longest *legitimate* answer, add ~30% headroom, set it there.
+Treat it as a runaway guard, not a style control.
+
+---
+
+### Stop sequences — halt when you see this text
+
+A list of strings. The moment the model generates one, generation stops immediately. The
+stop text itself is normally **not** included in what you get back.
+
+**Example 1 — writing one side of a dialogue.** Without a stop sequence the model
+helpfully invents the user's next line too:
+
+```
+Prompt:  "Assistant: How can I help?\nUser: My Lambda is timing out.\nAssistant:"
+
+Without:  "Let's check the timeout setting.
+           User: Where do I find that?          ← it's writing your lines now
+           Assistant: In the console..."         ← and its own replies to them
+
+With stop_sequences: ["User:"]
+          "Let's check the timeout setting."     ← stops cleanly
+```
+
+**Example 2 — few-shot patterns.** You gave three examples separated by `---`, so the model
+sees a pattern and cheerfully starts inventing example four:
+
+```
+stop_sequences: ["---"]
+```
+
+**Example 3 — code blocks.** You asked for a fenced block and don't want the chatty
+"Hope this helps!" afterwards:
+
+```
+stop_sequences: ["```"]
+```
+
+**Example 4 — one item at a time.** Generating a single line and nothing more:
+
+```
+stop_sequences: ["\n"]
+```
+
+**Two things they buy you beyond formatting:** the request finishes sooner (**lower latency**)
+and you stop paying at the cut (**lower cost**). Everything the model would have rambled on to
+say is never generated.
+
+> ⚠️ **Choose something that can't legitimately appear in a good answer.** Stopping on `"."`
+> ends the response after the first sentence. Stopping on `"Note"` kills any answer
+> containing the word "Note". And they're normally **case-sensitive** and whitespace-exact —
+> `"User:"` won't catch `"user:"`.
+
+---
+
+### stop_reason — the field that ties this together
+
+Every response tells you **why it stopped**. Ignoring this field is one of the most common
+beginner bugs, because a truncated answer otherwise looks like a perfectly normal answer.
+
+| stop_reason | What happened | What you should do |
+|---|---|---|
+| natural end (`end_turn` / `stop`) | The model finished on its own | Nothing — this is the happy path |
+| `max_tokens` | **Hit your ceiling. The output is truncated.** | Do **not** parse it. Raise the ceiling or shorten the task |
+| `stop_sequence` | One of your stop strings fired | Expected — but check it wasn't an accident |
+| `tool_use` | It wants you to call a function | Run the tool, send the result back |
+
+```js
+// The check that saves you
+if (response.stopReason === 'max_tokens') {
+  // Do NOT JSON.parse this. It is half a response.
+  throw new Error('Response truncated — raise max_tokens');
+}
+```
+
+> **Remember:** always check *why* it stopped before you trust *what* it said.
+> Exact string values vary between providers — the four categories above don't.
+
+---
+
+### Settings recipes
+
+Sensible starting points. Tune from here, don't invent from scratch.
+
+| Task | temperature | top_p | max_tokens | stop_sequences |
+|---|---|---|---|---|
+| Extract JSON / structured data | **0** | default | generous (truncation is fatal) | — |
+| Classify into a category | **0** | default | very small (10–20) | `\n` |
+| Answer from retrieved documents (RAG) | **0–0.2** | default | 500–1500 | — |
+| Generate code | **0–0.2** | default | large | ` ``` ` |
+| General chat | 0.5–0.7 | default | ~1000 | — |
+| Brainstorm names / marketing copy | 0.8–1.0 | 0.95 | small | — |
+
+The pattern: **anything a machine consumes → temperature 0. Anything a human reads for
+variety → higher.**
+
+---
+
+### Debugging by symptom
+
+Learn this table and you can diagnose most "the model is being weird" reports on sight.
+
+| Symptom | Most likely cause | Fix |
+|---|---|---|
+| Output repeats itself, or loops the same phrase | Temperature too **low** | Raise it a little |
+| Output starts fine then wanders off-topic | Temperature too **high** | Lower it |
+| Occasionally produces one bizarre word | Tail candidates surviving | Lower top-p |
+| Cut off mid-sentence | `max_tokens` | Raise it — and check `stop_reason` |
+| Invents extra conversation turns | Nothing halting it | Add a stop sequence |
+| Stops far too early | A stop sequence matched by accident | Pick a rarer one |
+| JSON parse fails intermittently | Truncation, or temperature > 0 | Temp 0 + higher max_tokens + check `stop_reason` |
+| Same prompt gives different answers | Working as designed | Temperature 0 if you need consistency |
+
+---
+
+### ⚠️ These dials are not universal
+
+Two things to keep straight, both directly relevant to Bedrock:
+
+**1. Not every model accepts every parameter.** Bedrock is a multi-provider platform, and the
+parameters differ by model family. Some of the newest reasoning models have **removed the
+sampling parameters entirely** — the most current Claude models reject `temperature`,
+`top_p` and `top_k` with a 400 error, replacing them with a separate "effort" control.
+Assuming a parameter exists is a real source of runtime failures.
+
+**2. Bedrock's Converse API splits them into two buckets** — worth memorising, it's very
+exam-friendly:
+
+- `inferenceConfig` — the **common** parameters every model understands:
+  `maxTokens`, `temperature`, `topP`, `stopSequences`
+- `additionalModelRequestFields` — **model-specific** parameters, `top_k` among them
+
+> **Remember:** if a parameter is in `inferenceConfig`, it's portable across models.
+> If you had to put it in `additionalModelRequestFields`, you've tied yourself to one model family.
+
+---
+
+### Try it yourself (30 minutes, in the Bedrock console playground)
+
+Reading this teaches you less than ten minutes of moving the sliders.
+
+1. Prompt: *"Write a tagline for a coffee shop."* Run it **five times at temperature 0** —
+   note how similar. Then **five times at 1.0**.
+2. Prompt: *"What is 17 × 23?"* Try temperature 0 and 1.5. Watch accuracy fall as the
+   dial goes up. **This is why reasoning tasks want low temperature.**
+3. Set `max_tokens = 15` and ask it to explain S3. Watch it stop mid-word. Find the
+   `stop_reason` in the response.
+4. Ask for a dialogue with no stop sequence, and watch it write both sides. Add
+   `"User:"` as a stop sequence and run it again.
+5. Ask for JSON at temperature 1.0, ten times. Count how many you could actually parse.
+   Then do it at temperature 0.
+
+Write down what surprised you — that's your note for the day.
 
 ---
 
@@ -501,6 +800,9 @@ One question through the whole stack. If you can follow this, Week 1 is done.
 | Tool use vs. agent | Tool use = one call. Agent = the loop. |
 | Context window vs. memory | There is no memory. The context window is re-sent, in full, every call. |
 | Max tokens vs. "be concise" | Max tokens truncates. Only the prompt can ask for brevity. |
+| Top-k vs. top-p | Top-k = a fixed headcount. Top-p = a confidence threshold that resizes itself. |
+| Max tokens vs. stop sequence | Max tokens cuts when the *budget* runs out. A stop sequence cuts when specific *text* appears. |
+| Reshaping vs. filtering | Temperature reshapes the odds. Top-k/top-p delete candidates. Different jobs, applied in that order. |
 
 ---
 
@@ -518,7 +820,19 @@ Close this file and answer out loud. Any hesitation = reread that section.
    Why might that work, and what does it remind you of?
 8. Why do "reduce API latency" and "fix Lambda cold starts" match, with no shared words?
 
-If you can answer all eight, you're ready for Bedrock. Move to Phase 1.
+**On the dials:**
+
+9. Put these in the order they're applied: sampling, top-p, temperature.
+10. You set temperature 0 and then tuned top_p for an hour with no effect. Why?
+11. Same `top_p = 0.9`. Why does it keep 1 candidate after "The capital of France is"
+    but 200 after "Name my coffee shop"?
+12. Your JSON parser fails maybe one call in twenty. Name two likely causes and the fix for each.
+13. Why is setting `max_tokens: 4000` when you only need 200 *not* expensive?
+14. Your model keeps writing the user's next line as well as its own. What do you reach for?
+15. Which four parameters live in Bedrock's `inferenceConfig`, and what does it mean
+    that `top_k` doesn't?
+
+If you can answer all fifteen, you're ready for Bedrock. Move to Phase 1.
 
 ---
 
