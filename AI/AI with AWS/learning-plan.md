@@ -77,6 +77,51 @@ Do **not** watch it front-to-back and hope.
 
 ---
 
+## Reading the course against this plan
+
+The course's **opening section (lectures 6–35) is not "Bedrock basics"** — it's a fast sweep
+across Bedrock overview, fine-tuning, RAG, Knowledge Bases, chunking, guardrails, prompt
+management, Flows and prompt engineering. That is Phases 2–4 of this plan, compressed into
+about 2.5 hours.
+
+**That's a feature, not a conflict.** Use the two orderings for different jobs:
+
+| | The course section | This plan |
+|---|---|---|
+| Job | The **map** — see the whole terrain fast | The **depth pass** — one topic per week, built and written up |
+| Pace | Watch it straight through | A week per cluster |
+| Output | Recognition | Working code and your own notes |
+
+**So: watch 6–35 in one or two sittings now**, right after Week 2. Don't take notes, don't
+pause to master anything, don't build. You're buying a mental index so that when Week 4
+spends five days on chunking, you already know where it sits. Then carry on with the phases
+below as the depth pass.
+
+Roughly how that section maps here:
+
+| Lectures | Topic | Depth pass |
+|---|---|---|
+| 6–9 | Bedrock overview, model access, playground, Converse | **Phase 1 · Wk 2** ✅ done |
+| 10–11 | Fine-tuning, LoRA | Phase 2 · Wk 5 |
+| 12–19 | RAG, vector stores, Knowledge Bases, chunking, embeddings | Phase 2 · Wk 4 |
+| 20 | Evaluating RAG | Phase 5 · Wk 12 |
+| 21 | Multimodal pipelines | Phase 2 · Wk 3 |
+| 22–25 | Guardrails, Automated Reasoning, redaction | Phase 4 · Wk 9 |
+| 26–28 | Prompt Management, Flows, structured data | Wk 3 (prompts) + Wk 8 (Flows) |
+| 29–33 | Prompt engineering, bias, misuse | Wk 3 + Wk 9 |
+| 34–35 | Enterprise integration, Well-Architected GenAI Lens | Phase 4 · Wk 10 |
+
+> ### 💸 Before you start lecture 15
+> Lecture 16 is a warning and it is not a joke: **the OpenSearch Serverless collection a
+> Knowledge Base creates bills continuously**, with a minimum capacity floor, whether or not
+> you ever query it. Left running it costs hundreds of dollars a month, and it is by far the
+> most expensive mistake available in this course.
+>
+> **Delete the collection the moment each lab ends.** Put a calendar reminder on the same
+> day. Check your Cost Explorer the morning after any Knowledge Base lab.
+
+---
+
 ## The spine project
 
 One project runs the whole plan, growing each phase: **an assistant over this notes repo.**
@@ -143,6 +188,8 @@ The biggest block. Give it the full three weeks.
 ### Week 3 — Choosing and steering a model
 - Model selection criteria: modality, context window, latency, throughput, **cost per
   input vs. output token**, licensing, region
+- **Multimodal models and pipelines** — text + image + audio + video in, and when a
+  multimodal model beats a chain of single-purpose ones
 - When a smaller/faster model is the correct answer (most of the time)
 - Prompt engineering that's actually tested: role prompting, few-shot examples,
   chain-of-thought, delimiters, output-format instruction
@@ -164,6 +211,8 @@ The biggest block. Give it the full three weeks.
 ### Week 5 — Customization and data
 - **Fine-tuning vs. continued pre-training vs. distillation vs. RAG** — decision criteria
   (this comparison is exam gold; make a table and memorise it)
+- **How fine-tuning actually works: LoRA (Low-Rank Adaptation)** — why you train a small
+  adapter instead of the whole model, and what that buys in cost and time
 - Training data format, quality, volume; where fine-tuning is the *wrong* answer
 - Model evaluation before selection
 - Data pipelines: S3 layout, ingestion, sync, incremental updates
@@ -246,6 +295,9 @@ Your most comfortable domain. Don't over-invest — but the *AI-specific* half i
 - **Bedrock Guardrails:** content filters, denied topics, word filters, **PII detection and
   redaction**, contextual grounding checks
 - Guardrails on input vs. output, and applying one to an agent or Knowledge Base
+- **Automated Reasoning checks** — formal/logical verification of claims against policy,
+  a distinctly AWS answer to hallucination. Know what it can and can't prove
+- **Token-level redaction** — masking sensitive spans rather than blocking the response
 - **Prompt injection and jailbreaking** — including *indirect* injection via retrieved
   documents *(directly relevant: your RAG corpus is public markdown)*
 - Responsible AI: bias, fairness, transparency, **AWS AI Service Cards**
@@ -257,6 +309,8 @@ Your most comfortable domain. Don't over-invest — but the *AI-specific* half i
 - **KMS** for prompts, outputs, custom models, Knowledge Base data at rest
 - **CloudTrail** — what is and isn't captured for invocations
 - **Model invocation logging** to S3 / CloudWatch — the audit trail
+- **AWS Well-Architected Tool — Generative AI Lens**: the six-pillar framing applied to
+  GenAI workloads. Exam scenarios love "which pillar / which best practice"
 - Cost allocation tags, multi-account patterns, SCPs on model access
 - Secrets for third-party model providers
 
