@@ -6,6 +6,7 @@ when to reach for it, and the pitfalls that cost time.
 > Working toward **AWS Certified Generative AI Developer – Professional (AIP-C01)**.
 > Start with the [learning plan](./learning-plan.md) — this file is the topic index.
 > Week 1 vocabulary: [00 — Glossary: AI from Zero](./00-glossary.md).
+> Week 2 hands-on: [01 — Bedrock Basics](./01-bedrock-basics.md).
 
 ---
 
