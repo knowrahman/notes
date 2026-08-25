@@ -148,7 +148,8 @@ The biggest block. Give it the full three weeks.
   chain-of-thought, delimiters, output-format instruction
 - **Structured output** — forcing JSON, schema validation, what to do when it's malformed
   *(you've already done this in your agentic AI notes — reuse it)*
-- Prompt templates and versioning; Bedrock Prompt Management
+- Prompt templates and versioning; **Bedrock Prompt Management** — versions, aliases, and
+  shifting traffic between prompt versions without a redeploy
 
 ### Week 4 — Retrieval (RAG)
 - Why RAG exists: private/fresh data without retraining
@@ -166,6 +167,9 @@ The biggest block. Give it the full three weeks.
 - Training data format, quality, volume; where fine-tuning is the *wrong* answer
 - Model evaluation before selection
 - Data pipelines: S3 layout, ingestion, sync, incremental updates
+- **Bedrock Data Automation** — structured output from documents, images, audio and
+  video; where it beats hand-rolling Textract + prompting
+- **Bedrock Marketplace** — reaching models beyond the built-in catalogue
 - **Compliance:** data residency, region selection, what Bedrock does and doesn't do
   with your prompts, PII handling before it reaches the model
 
@@ -194,7 +198,30 @@ two sentences. Practise this — it is the exam's favourite question shape.
 - Model Context Protocol (MCP) — how tools get exposed to models
 - When an agent is over-engineering and a plain chain is right
 
+**Bedrock AgentCore** — the production agent platform. Modular services you can adopt
+individually, and the answer to "how do I actually run an agent in production":
+
+| Service | What it solves |
+|---|---|
+| **Runtime** | Serverless hosting with micro-VM **session isolation** |
+| **Gateway** | Turns your APIs and Lambdas into **MCP tools** for the agent |
+| **Memory** | Context that survives across sessions |
+| **Identity** | Who the user is; which third-party tokens the agent may use on their behalf |
+| **Observability** | What the agent actually did (OpenTelemetry) |
+| **Code Interpreter** | Sandboxed code execution |
+| **Browser** | Web automation |
+| **Evaluations** | Whether the agent is doing a good job |
+
+Know **Bedrock Agents vs. AgentCore**: the managed single-agent construct vs. the
+infrastructure layer for running agents — including ones built with other frameworks — at
+production scale. Expect scenario questions that hinge on session isolation, identity
+delegation, or cross-session memory; those point at AgentCore.
+
 ### Week 8 — Application architecture
+- **Bedrock Flows** — the visual/API workflow builder chaining prompts, Knowledge Bases,
+  Agents, Guardrails, Lambdas and conditional logic into one invocable flow. Know when a
+  Flow beats Step Functions (Flows for GenAI-native chaining; Step Functions for general
+  distributed orchestration, long waits and human-in-the-loop)
 - Lambda for inference (mind the 15-min ceiling and the payload limits)
 - **Step Functions** for multi-step, long-running, human-in-the-loop flows
 - SQS + DLQ for retryable model calls; **idempotency** (LLM calls are expensive to repeat)
@@ -247,6 +274,9 @@ hidden inside a note file. Lock the Lambda role to one model ARN. Turn on invoca
 - **Prompt caching** — what's cacheable and the savings
 - **Provisioned throughput vs. on-demand** — where the cost curve crosses
 - **Batch inference** for non-interactive work
+- **Intelligent Prompt Routing** — sending easy requests to a cheaper model automatically
+- **Cross-region inference profiles** — capacity and resilience, and the reason a bare
+  model ID sometimes fails with an on-demand throughput error
 - Latency: model choice, streaming, first-token vs. total time, cold starts
 - Quotas and throttling; retries with exponential backoff; cross-region inference profiles
 - Observability: CloudWatch metrics, invocation logs, tracing a request end to end
@@ -282,6 +312,39 @@ assistant. Change the chunk size, rerun, see the number move. Add cost and laten
 actually being asked, then reread the scenario for the constraints (cost? latency? compliance?
 no internet access?). The constraint is almost always the discriminator between two plausible
 answers. Flag and move on anything over ~2.5 minutes; you have 2.4 min/question average.
+
+---
+
+## Bedrock feature coverage map
+
+Every Bedrock surface, and the week it lands in. Use this to check nothing has slipped —
+if a course section covers something not on this list, add it and tell me.
+
+| Bedrock feature | Covered in |
+|---|---|
+| Model access, regions, model IDs | Phase 1 · Wk 2 |
+| **Converse API** / ConverseStream / InvokeModel | Phase 1 · Wk 2 |
+| Inference parameters, streaming, multi-turn | Phase 1 · Wk 2 |
+| Model selection & comparison criteria | Phase 2 · Wk 3 |
+| Prompt Management — versions, aliases, traffic | Phase 2 · Wk 3 |
+| **Knowledge Bases** (managed RAG) | Phase 2 · Wk 4 |
+| Embeddings, vector stores, chunking, re-ranking | Phase 2 · Wk 4 |
+| Fine-tuning / continued pre-training / **distillation** | Phase 2 · Wk 5 |
+| **Data Automation**, Marketplace | Phase 2 · Wk 5 |
+| Tool use / function calling | Phase 3 · Wk 6 |
+| **Bedrock Agents** — action groups, multi-agent | Phase 3 · Wk 7 |
+| **AgentCore** — Runtime, Gateway, Memory, Identity, Observability | Phase 3 · Wk 7 |
+| MCP | Phase 3 · Wk 7 |
+| **Flows**, Step Functions, streaming to clients | Phase 3 · Wk 8 |
+| **Guardrails**, prompt injection, responsible AI | Phase 4 · Wk 9 |
+| IAM, PrivateLink, KMS, CloudTrail, invocation logging | Phase 4 · Wk 10 |
+| Provisioned throughput, prompt caching, batch | Phase 5 · Wk 11 |
+| Intelligent Prompt Routing, cross-region inference profiles | Phase 5 · Wk 11 |
+| **Evaluations** — automatic, human, LLM-as-a-judge | Phase 5 · Wk 12 |
+| RAG metrics, prompt regression testing | Phase 5 · Wk 12 |
+
+**Deliberately not scheduled:** Bedrock Studio and other low-code/console-only surfaces —
+worth 20 minutes of clicking, not a study week.
 
 ---
 
