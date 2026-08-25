@@ -1,7 +1,6 @@
 # Learning Plan — AWS Certified Generative AI Developer, Professional (AIP-C01)
 
 **Starting point:** strong backend / AWS serverless, *zero* AI background.
-**Course:** Stéphane Maarek — *Ultimate AWS Certified Generative AI Developer Professional*.
 **Assumed pace:** ~8–10 hrs/week → ~14 weeks. Halve the weeks at 16–20 hrs/week; add ~4 if under 6.
 
 ---
@@ -38,10 +37,10 @@ belong to model selection and RAG.
 **Your gap is not AWS. It is AI vocabulary.**
 
 You already know IAM, Lambda, DynamoDB, API Gateway, Step Functions. That is most
-of the "AWS" in this exam. What will hurt is that Maarek will say "we'll set the
+of the "AWS" in this exam. What will hurt is a sentence like "we'll set the
 temperature to 0.2 and use top-p sampling with a 200k context window and cosine
-similarity over Titan embeddings" in week one, and if none of those words mean
-anything, you will spend the course transcribing instead of understanding.
+similarity over Titan embeddings" landing in week one — if none of those words mean
+anything, you spend your study time transcribing instead of understanding.
 
 So: **Week 1 is pure vocabulary, no AWS.** Everything after that is you doing what
 you already do well — wiring services together — with a new component in the middle.
@@ -63,11 +62,11 @@ in Week 6 — you wrote most of the agentic AI answer already.
 
 ---
 
-## How to use the Maarek course
+## How to use video material
 
-Do **not** watch it front-to-back and hope.
+Do **not** watch front-to-back and hope.
 
-1. **Section by section**, following his order (it tracks the domains).
+1. **Section by section**, following the material's own order.
 2. After each section, **close the video and build the smallest possible thing**
    that uses the idea. 60% hands-on, 40% video is the right ratio at Professional level.
 3. **Write a note in this repo** for each topic — same style as your existing notes.
@@ -77,48 +76,34 @@ Do **not** watch it front-to-back and hope.
 
 ---
 
-## Reading the course against this plan
+## Breadth first, then depth
 
-The course's **opening section (lectures 6–35) is not "Bedrock basics"** — it's a fast sweep
-across Bedrock overview, fine-tuning, RAG, Knowledge Bases, chunking, guardrails, prompt
-management, Flows and prompt engineering. That is Phases 2–4 of this plan, compressed into
-about 2.5 hours.
+Most video material front-loads **breadth** — one fast sweep across Bedrock overview,
+fine-tuning, RAG, Knowledge Bases, chunking, guardrails, prompt management, Flows and
+prompt engineering, often inside the opening hours. That's Phases 2–4 of this plan
+compressed into a couple of hours.
 
-**That's a feature, not a conflict.** Use the two orderings for different jobs:
+**That isn't a conflict with this plan — the two orderings do different jobs:**
 
-| | The course section | This plan |
+| | A breadth sweep | This plan |
 |---|---|---|
 | Job | The **map** — see the whole terrain fast | The **depth pass** — one topic per week, built and written up |
 | Pace | Watch it straight through | A week per cluster |
 | Output | Recognition | Working code and your own notes |
 
-**So: watch 6–35 in one or two sittings now**, right after Week 2. Don't take notes, don't
-pause to master anything, don't build. You're buying a mental index so that when Week 4
-spends five days on chunking, you already know where it sits. Then carry on with the phases
-below as the depth pass.
+**So do the breadth sweep in one or two sittings, right after Week 2.** No notes, no
+pausing to master anything, no building. You're buying a mental index, so that when Week 4
+spends five days on chunking you already know where it sits. Then work the phases below as
+the depth pass.
 
-Roughly how that section maps here:
-
-| Lectures | Topic | Depth pass |
-|---|---|---|
-| 6–9 | Bedrock overview, model access, playground, Converse | **Phase 1 · Wk 2** ✅ done |
-| 10–11 | Fine-tuning, LoRA | Phase 2 · Wk 5 |
-| 12–19 | RAG, vector stores, Knowledge Bases, chunking, embeddings | Phase 2 · Wk 4 |
-| 20 | Evaluating RAG | Phase 5 · Wk 12 |
-| 21 | Multimodal pipelines | Phase 2 · Wk 3 |
-| 22–25 | Guardrails, Automated Reasoning, redaction | Phase 4 · Wk 9 |
-| 26–28 | Prompt Management, Flows, structured data | Wk 3 (prompts) + Wk 8 (Flows) |
-| 29–33 | Prompt engineering, bias, misuse | Wk 3 + Wk 9 |
-| 34–35 | Enterprise integration, Well-Architected GenAI Lens | Phase 4 · Wk 10 |
-
-> ### 💸 Before you start lecture 15
-> Lecture 16 is a warning and it is not a joke: **the OpenSearch Serverless collection a
-> Knowledge Base creates bills continuously**, with a minimum capacity floor, whether or not
-> you ever query it. Left running it costs hundreds of dollars a month, and it is by far the
-> most expensive mistake available in this course.
+> ### 💸 Read this before your first Knowledge Base lab
+> **The OpenSearch Serverless collection a Knowledge Base creates bills continuously**,
+> with a minimum capacity floor, whether or not you ever query it. Left running it costs
+> hundreds of dollars a month, and it is by far the most expensive mistake available in
+> this whole syllabus.
 >
 > **Delete the collection the moment each lab ends.** Put a calendar reminder on the same
-> day. Check your Cost Explorer the morning after any Knowledge Base lab.
+> day. Check Cost Explorer the morning after any Knowledge Base lab.
 
 ---
 
@@ -354,7 +339,7 @@ assistant. Change the chunk size, rerun, see the number move. Add cost and laten
 
 ## Phase 6 — Exam run (Weeks 13–14)
 
-- **Week 13:** second pass of the whole Maarek course at 1.5–2×. It will feel easy —
+- **Week 13:** second pass over all your video material at 1.5–2×. It will feel easy —
   that's the point. Note every moment of hesitation; those are your weak spots.
 - Take a **full practice exam under real conditions** (180 min, no pausing). Expect to fail
   the first one. That is normal and useful.
@@ -372,7 +357,7 @@ answers. Flag and move on anything over ~2.5 minutes; you have 2.4 min/question 
 ## Bedrock feature coverage map
 
 Every Bedrock surface, and the week it lands in. Use this to check nothing has slipped —
-if a course section covers something not on this list, add it and tell me.
+if you meet something not on this list, add it.
 
 | Bedrock feature | Covered in |
 |---|---|
@@ -406,7 +391,7 @@ worth 20 minutes of clicking, not a study week.
 
 | | |
 |---|---|
-| Mon–Thu | ~1 hr/night — course video + notes |
+| Mon–Thu | ~1 hr/night — video + notes |
 | Sat | 3–4 hrs — build the phase project |
 | Sun | 1 hr — write up the week's note, review last week's |
 
