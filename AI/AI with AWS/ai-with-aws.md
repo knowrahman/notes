@@ -8,6 +8,7 @@ when to reach for it, and the pitfalls that cost time.
 > Week 1 vocabulary: [00 — Glossary: AI from Zero](./00-glossary.md).
 > Week 2 hands-on: [01 — Bedrock Basics](./01-bedrock-basics.md).
 > Week 3: [02 — Choosing a Model](./02-model-selection.md) · [03 — Prompting](./03-prompting.md).
+> Week 4: [04 — RAG](./04-rag.md).
 
 ---
 
