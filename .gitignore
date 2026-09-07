@@ -1,1 +1,22 @@
 /private/*
+
+# Terraform
+# These notes are public. Terraform state contains secrets in plaintext.
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+.terraform.tfstate.lock.info
+tfplan
+*.tfplan
+
+# Note: .terraform.lock.hcl is deliberately NOT ignored - commit it.

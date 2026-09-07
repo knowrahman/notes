@@ -12,6 +12,7 @@ This repo contains structured notes, summaries, and quick references on a wide r
 - Cloud & DevOps
   - AWS (Developer Associate Notes)
   - Docker / GitHub Actions
+  - Terraform & Infrastructure as Code
 
 - Databases 
   - PostgreSQL
