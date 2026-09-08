@@ -1014,7 +1014,11 @@ resource "aws_instance" "app" {
   user_data                   = var.user_data
   user_data_replace_on_change = true
 
-  tags = { Name = "${var.name_prefix}-app" }
+  # each.key is the subnet ID, so the last few characters give the two
+  # servers distinguishable names. Without this both instances would be
+  # tagged "notely-dev-app" and you could not tell them apart in the
+  # console - which matters at exactly the moment one of them is broken.
+  tags = { Name = "${var.name_prefix}-app-${substr(each.key, -8, -1)}" }
 
   lifecycle {
     create_before_destroy = true

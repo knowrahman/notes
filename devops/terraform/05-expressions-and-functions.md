@@ -663,7 +663,7 @@ http.createServer((req, res) => {
     env: process.env.NODE_ENV,
     host: require('os').hostname(),
   }));
-}).listen(port, () => console.log(`notely listening on ${port}`));
+}).listen(port, () => console.log(`notely listening on $${port}`));
 APPFILE
 
 # Run it as a service so it restarts if it crashes
@@ -706,29 +706,34 @@ map.
 
 ### The escaping gotcha
 
-Look at this line inside the template:
+Look carefully at this line in the template you just wrote:
 
 ```bash
-.listen(port, () => console.log(`notely listening on ${port}`));
+.listen(port, () => console.log(`notely listening on $${port}`));
 ```
 
-That `${port}` is JavaScript, not Terraform — but Terraform will try to
-interpolate it and fail, because there is no `port` variable passed in.
+Why the doubled dollar? Because that is a **JavaScript** template literal, and
+Terraform would otherwise try to interpolate it.
 
-Two fixes:
+Terraform processes the whole file before Node ever sees it. It finds `${port}`,
+looks for `port` in the variables map you passed to `templatefile()`, does not
+find it — the map has `app_port`, not `port` — and fails:
 
-**1. Escape it with `$${`:**
-
-```bash
-console.log(`notely listening on $${port}`)
+```text
+Error: Invalid function argument
+vars map does not contain key "port"
 ```
 
-Terraform turns `$${` into a literal `${`.
+**`$${` is the escape.** Terraform emits a literal `${`, so the rendered file
+contains `${port}` and Node interprets it at runtime, exactly as intended.
 
-**2. Or use a quoted heredoc**, as the example above does with `<<'APPFILE'` —
-though note this only stops *bash* from expanding it, not Terraform. Terraform
-processes the whole file before bash ever sees it, so you still need `$${` for
-anything Terraform should leave alone.
+The alternative fix, when the value *is* known to Terraform, is simply to pass
+it in — then `${port}` resolves at render time and the script contains the
+literal number.
+
+Note that the quoted heredoc (`<<'APPFILE'`) does **not** help here. It stops
+*bash* expanding the variable, but Terraform has already rendered the file by
+then. You still need `$${` for anything Terraform should leave alone.
 
 > Any `${...}` in a template file is Terraform's, unless you write `$${...}`. This catches everyone once.
 
