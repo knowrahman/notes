@@ -12,7 +12,10 @@ This repo contains structured notes, summaries, and quick references on a wide r
 - Cloud & DevOps
   - AWS (Developer Associate Notes)
   - Docker / GitHub Actions
-  - Terraform & Infrastructure as Code
+  - CI/CD (GitLab CI, GitHub Actions)
+  - **Terraform & Infrastructure as Code** — a full 15-module course in
+    `devops/terraform/`, from an AWS networking primer through to a
+    complete three-tier deployment. Start at `terraform-roadmap.md`.
 
 - Databases 
   - PostgreSQL
