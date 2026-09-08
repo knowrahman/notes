@@ -1,5 +1,47 @@
 # Module 1 — IaC & Terraform Basics
 
+## What we are building across this whole course
+
+Every module from here on builds one more piece of the same system: **Notely**, a
+note-taking API written in Node.js.
+
+By Module 14 it looks like this:
+
+```text
+                    Internet
+                        |
+                    Route 53          notely.example.com
+                        |
+            Application Load Balancer          public subnets
+                  /            \
+           EC2 server      EC2 server          private subnets
+           Node.js API     Node.js API
+                  \            /
+              RDS PostgreSQL database          private subnets
+
+     S3 (attachments) · CloudWatch Logs · SNS alerts · Secrets Manager
+```
+
+Right now that probably looks like a lot. It is not, and you will build it one
+small piece at a time:
+
+| Module | What gets added to Notely |
+|---|---|
+| **1** (this one) | The S3 bucket for file attachments |
+| 2 | The VPC, a subnet, an internet gateway |
+| 4 | The same thing, but driven by variables |
+| 6 | Two availability zones, the load balancer, the servers |
+| 8 | All of it reorganised into reusable modules |
+| 9 | Three copies: dev, staging, prod |
+| 14 | The finished system |
+
+The full picture, the reasoning behind every choice, and what each piece costs
+are in `notely-architecture.md`. Keep it open in a tab.
+
+> If any of the networking words above are unfamiliar — VPC, subnet, load balancer — read `00-aws-networking-primer.md` first. It explains all of them from zero.
+
+---
+
 ## Why this module exists
 
 You already build infrastructure on AWS. You have clicked through the VPC wizard,
@@ -28,21 +70,33 @@ That word — **reconcile** — is the whole tool. Everything else is detail.
 
 ## Mental model (mapped to what you already know)
 
-You have used Entity Framework migrations (`../../backend/.Net/ef-core.md`).
-Think about what happens there:
+You already know npm (`../../backend/nodejs/node-js.md`). Terraform works almost
+exactly the same way, with different words.
 
-| EF Core | Terraform |
+| npm | Terraform |
 |---|---|
-| You describe the model you want in C# classes | You describe the infrastructure you want in `.tf` files |
-| EF compares your model against the database schema | Terraform compares your config against the cloud API |
-| It generates a migration — the *diff* | It generates a **plan** — the *diff* |
-| You review the migration before running it | You review the plan before applying it |
-| `__EFMigrationsHistory` table tracks what's applied | **State file** tracks what exists |
-| Running twice with no changes does nothing | Running twice with no changes does nothing |
+| `package.json` lists what you want | `.tf` files list the infrastructure you want |
+| `npm install` fetches it | `terraform init` downloads the providers |
+| `node_modules/` holds the downloaded code | `.terraform/` holds the downloaded providers |
+| `package-lock.json` pins exact versions | `.terraform.lock.hcl` pins exact versions |
+| `^5.0.0` means "5.x, not 6" | `~> 5.0` means "5.x, not 6" |
+| Running `npm install` twice does nothing new | Running `terraform apply` twice does nothing new |
 
-If that analogy lands, you already understand Terraform's architecture. The state
-file is the migrations-history table. The plan is the migration script. `apply`
-is `Update-Database`.
+That is the tooling half. The other half is database migrations. If you have used
+Prisma, Knex, Sequelize or TypeORM:
+
+| Database migrations | Terraform |
+|---|---|
+| You describe the schema you want | You describe the infrastructure you want |
+| The tool compares it against the real database | Terraform compares it against the real cloud |
+| It works out the difference | It works out the difference — the **plan** |
+| You run the migration | You run `terraform apply` |
+| A migrations table records what's applied | The **state file** records what exists |
+| Running it twice does nothing | Running it twice does nothing |
+
+If that lands, you already understand Terraform's architecture. The state file is
+the migrations table. The plan is the generated migration. `terraform apply` is
+`prisma migrate deploy`.
 
 The one place the analogy breaks: EF owns the whole database schema, but
 Terraform only owns the resources *you told it about*. Anything created by hand
@@ -232,7 +286,7 @@ IAM roles; the Serverless Framework deploys the functions into it.
 |---|---|---|
 | **Terraform** | Declarative, HCL, multi-cloud | Default choice for infrastructure |
 | **OpenTofu** | Open-source fork of Terraform (after the 2023 licence change) | You need a fully OSS licence; near drop-in compatible |
-| **Pulumi** | IaC in TypeScript/Python/Go/C# | Your team strongly prefers a real programming language |
+| **Pulumi** | IaC in TypeScript/JavaScript/Python/Go | Your team strongly prefers a real programming language |
 | **AWS CDK** | Generates CloudFormation from TypeScript/Python | AWS-only, and you want loops and classes |
 | **Ansible** | Imperative-ish configuration management | Configuring software *inside* servers |
 | **Kubernetes manifests** | Declarative container orchestration | Workloads on a cluster (Terraform builds the cluster) |
@@ -242,10 +296,15 @@ Ansible configures it.** Terraform creates the EC2 instance. Ansible installs
 nginx on it. Using Terraform for the second job is possible via provisioners and
 is almost always a mistake (Module 6 covers why).
 
-Since you are a .NET developer, CDK and Pulumi will look tempting — you can write
-C#. Resist for now. Learn Terraform first: HCL's constraints are deliberate, and
-its restrictions prevent whole classes of mistakes that a Turing-complete
-infrastructure language invites.
+Since you write JavaScript, CDK and Pulumi will look tempting — you could write
+your infrastructure in TypeScript and never learn a new language. Resist for now.
+
+Here is why. In TypeScript you *can* write a `for` loop that creates 300 servers
+based on the result of an API call. That flexibility sounds good until you are
+reading someone else's infrastructure code at 2am trying to work out how many
+servers it will actually make. HCL cannot do that, and the restriction is
+deliberate — you can always read a `.tf` file and know what it builds. Learn
+Terraform first. If you later move to CDK or Pulumi, everything transfers.
 
 ### When *not* to use Terraform
 
@@ -747,24 +806,27 @@ everything you create in a lab.
 
 ---
 
-## Hands-On Lab — Your First Resource
+## Hands-On Lab — Notely's First Resource
 
 **Cost: free.** One S3 bucket with no objects in it is free tier, and you destroy
 it at the end.
 
 ### Goal
 
-Create an S3 bucket with Terraform, observe the state file, make a change, and
-destroy it.
+Create Notely's attachments bucket — the place uploaded files will live — then
+observe the state file, make a change, watch drift happen, and destroy it.
+
+This is a real piece of the final architecture. It survives to Module 14.
 
 ### Step 1: Set up
 
 ```bash
-mkdir -p ~/terraform-labs/01-first-resource
-cd ~/terraform-labs/01-first-resource
+mkdir -p ~/terraform-labs/notely
+cd ~/terraform-labs/notely
 ```
 
-Not inside your notes repo. Lab code is throwaway.
+Not inside your notes repo. This directory is where Notely lives from now on —
+every module adds to it.
 
 ### Step 2: Write the configuration
 
@@ -792,29 +854,32 @@ provider "aws" {
   default_tags {
     tags = {
       ManagedBy = "Terraform"
-      Project   = "terraform-lab-01"
+      Project   = "notely"
+      Ephemeral = "true"
     }
   }
 }
 
-# S3 bucket names must be globally unique across all of AWS,
-# so we append a random suffix.
+# S3 bucket names must be globally unique across all of AWS -
+# not just unique in your account. Someone else may already own
+# "notely-attachments", so we add a random suffix.
 resource "random_id" "suffix" {
   byte_length = 4
 }
 
-resource "aws_s3_bucket" "lab" {
-  bucket = "tf-lab-01-${random_id.suffix.hex}"
+# Where Notely stores files people attach to their notes.
+resource "aws_s3_bucket" "attachments" {
+  bucket = "notely-attachments-${random_id.suffix.hex}"
 }
 
-output "bucket_name" {
-  description = "The name of the bucket that was created"
-  value       = aws_s3_bucket.lab.bucket
+output "attachments_bucket_name" {
+  description = "The name of Notely's attachments bucket"
+  value       = aws_s3_bucket.attachments.bucket
 }
 
-output "bucket_arn" {
-  description = "The ARN of the bucket"
-  value       = aws_s3_bucket.lab.arn
+output "attachments_bucket_arn" {
+  description = "The ARN of Notely's attachments bucket"
+  value       = aws_s3_bucket.attachments.arn
 }
 ```
 
@@ -861,14 +926,14 @@ terraform output
 ```
 
 ```text
-bucket_arn  = "arn:aws:s3:::tf-lab-01-a1b2c3d4"
-bucket_name = "tf-lab-01-a1b2c3d4"
+attachments_bucket_arn  = "arn:aws:s3:::notely-attachments-a1b2c3d4"
+attachments_bucket_name = "notely-attachments-a1b2c3d4"
 ```
 
 Confirm it is real:
 
 ```bash
-aws s3 ls | grep tf-lab-01
+aws s3 ls | grep notely-attachments
 ```
 
 ### Step 6: Look at the state file
@@ -879,7 +944,7 @@ cat terraform.tfstate
 
 It is JSON. Find the `resources` array and read one entry. Notice that it records
 every attribute of the bucket, not just the ones you set. This file is how
-Terraform knows `aws_s3_bucket.lab` maps to `tf-lab-01-a1b2c3d4`.
+Terraform knows `aws_s3_bucket.attachments` maps to `notely-attachments-a1b2c3d4`.
 
 Module 3 is entirely about this file. For now, just register that it exists and
 that it is important.
@@ -902,8 +967,9 @@ whole reconciliation model in one command.
 Add versioning to the bucket. Append to `main.tf`:
 
 ```hcl
-resource "aws_s3_bucket_versioning" "lab" {
-  bucket = aws_s3_bucket.lab.id
+# Versioning means an overwritten or deleted attachment can be recovered.
+resource "aws_s3_bucket_versioning" "attachments" {
+  bucket = aws_s3_bucket.attachments.id
 
   versioning_configuration {
     status = "Enabled"
@@ -928,7 +994,7 @@ Change something by hand, the way a colleague might:
 
 ```bash
 aws s3api put-bucket-versioning \
-  --bucket $(terraform output -raw bucket_name) \
+  --bucket $(terraform output -raw attachments_bucket_name) \
   --versioning-configuration Status=Suspended
 ```
 
@@ -942,7 +1008,7 @@ Terraform detects that reality no longer matches your config and proposes to fix
 it:
 
 ```text
-  ~ resource "aws_s3_bucket_versioning" "lab" {
+  ~ resource "aws_s3_bucket_versioning" "attachments" {
       ~ versioning_configuration {
           ~ status = "Suspended" -> "Enabled"
         }
@@ -964,7 +1030,7 @@ terraform destroy
 Type `yes`. Then verify:
 
 ```bash
-aws s3 ls | grep tf-lab-01
+aws s3 ls | grep notely-attachments
 ```
 
 No output means it is gone.
@@ -1128,5 +1194,6 @@ syntax and type system, how resource references build a dependency graph without
 you declaring one, and how to read plan output line by line rather than skipping
 to the summary.
 
-Module 2's lab uses only the `local` and `random` providers — no AWS account, no
-cost — so you can focus entirely on the language.
+Then Notely gets its network: a VPC, a subnet, an internet gateway and a route
+table — exactly the pieces you drew in Module 0, now in code. All four are
+**free**, so this costs nothing.

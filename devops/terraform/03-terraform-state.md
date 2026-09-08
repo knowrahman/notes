@@ -1,5 +1,27 @@
 # Module 3 — Terraform State
 
+## Where Notely is right now
+
+```text
+  Notely so far:
+
+    S3 bucket  (attachments)        <- Module 1
+    VPC 10.0.0.0/16                 <- Module 2
+      +- public subnet 10.0.1.0/24
+      +- internet gateway
+      +- route table
+
+  State: a file called terraform.tfstate on your laptop.   <- the problem
+```
+
+This module adds **no new AWS resources** to Notely. Instead it fixes something
+that is already broken: the state file only exists on your machine, which means
+nobody else can work on Notely and a CI pipeline could never deploy it.
+
+Full picture: `notely-architecture.md`.
+
+---
+
 ## Why this module exists
 
 This is the most important module in the curriculum, and it is the one your
@@ -51,13 +73,21 @@ names:
 When your notes say CloudFormation keeps logical and physical resources in sync,
 they are describing a state file. AWS just does not let you see it.
 
-### From EF Core
+### From database migrations
 
-Module 1 used this analogy and it holds here too. State is the
-`__EFMigrationsHistory` table: a record of what has already been applied, so the
-tool knows what to do next. Delete that table and EF thinks the database is
-empty and tries to create everything from scratch. Delete your state file and
-Terraform does exactly the same thing.
+Module 1 used this analogy and it holds here too. Every migration tool — Prisma,
+Knex, Sequelize, TypeORM — keeps a table in your database listing the migrations
+it has already run. That table is how the tool knows what to do next.
+
+Delete that table and the tool thinks the database is brand new. It tries to
+create every table from scratch, and the run fails because the tables are
+already there.
+
+Delete your Terraform state file and exactly the same thing happens. Terraform
+thinks none of your infrastructure exists, tries to create all of it, and fails
+with "already exists" errors.
+
+> The state file is your migrations table. Losing it is the same kind of bad.
 
 ### Why the cloud API alone is not enough
 
@@ -100,8 +130,8 @@ Open one. It is JSON:
   "serial": 7,
   "lineage": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
   "outputs": {
-    "bucket_name": {
-      "value": "tf-lab-01-a1b2c3d4",
+    "attachments_bucket_name": {
+      "value": "notely-attachments-a1b2c3d4",
       "type": "string"
     }
   },
@@ -109,15 +139,15 @@ Open one. It is JSON:
     {
       "mode": "managed",
       "type": "aws_s3_bucket",
-      "name": "lab",
+      "name": "attachments",
       "provider": "provider[\"registry.terraform.io/hashicorp/aws\"]",
       "instances": [
         {
           "schema_version": 0,
           "attributes": {
-            "id": "tf-lab-01-a1b2c3d4",
-            "arn": "arn:aws:s3:::tf-lab-01-a1b2c3d4",
-            "bucket": "tf-lab-01-a1b2c3d4",
+            "id": "notely-attachments-a1b2c3d4",
+            "arn": "arn:aws:s3:::notely-attachments-a1b2c3d4",
+            "bucket": "notely-attachments-a1b2c3d4",
             "region": "ap-southeast-2",
             "tags_all": { "ManagedBy": "Terraform" }
           },
@@ -440,7 +470,7 @@ The ID comes from the error message.
 
 > Before force-unlocking, confirm nobody is actually running an apply. Breaking a live lock is how state gets corrupted.
 
-### The bootstrap problem
+### The bootstrap problem (chicken and egg)
 
 The backend needs an S3 bucket. You want to manage the bucket with Terraform.
 But Terraform needs the backend to store its state. Chicken and egg.
@@ -508,9 +538,9 @@ terraform state list
 
 ```text
 random_id.suffix
-aws_s3_bucket.lab
-aws_s3_bucket_versioning.lab
-module.vpc.aws_vpc.this[0]
+aws_s3_bucket.attachments
+aws_s3_bucket_versioning.attachments
+aws_vpc.main
 ```
 
 First thing to run when you are confused about what Terraform thinks it owns.
@@ -520,15 +550,15 @@ First thing to run when you are confused about what Terraform thinks it owns.
 Every attribute of one resource:
 
 ```bash
-terraform state show aws_s3_bucket.lab
+terraform state show aws_s3_bucket.attachments
 ```
 
 ```text
-# aws_s3_bucket.lab:
-resource "aws_s3_bucket" "lab" {
-    arn                         = "arn:aws:s3:::tf-lab-01-a1b2c3d4"
-    bucket                      = "tf-lab-01-a1b2c3d4"
-    id                          = "tf-lab-01-a1b2c3d4"
+# aws_s3_bucket.attachments:
+resource "aws_s3_bucket" "attachments" {
+    arn                         = "arn:aws:s3:::notely-attachments-a1b2c3d4"
+    bucket                      = "notely-attachments-a1b2c3d4"
+    id                          = "notely-attachments-a1b2c3d4"
     region                      = "ap-southeast-2"
 }
 ```
@@ -694,21 +724,32 @@ environment and by layer.
 
 ---
 
-## Hands-On Lab — Local State to a Locked S3 Backend
+## Hands-On Lab — Move Notely's State to a Locked S3 Backend
 
 **Cost: ~$0.** S3 storage for a few KB and an on-demand DynamoDB table are both
 inside free tier. You will destroy everything at the end.
 
 ### Goal
 
-Build a backend with local state, migrate into it, then practise the state
-commands — including deliberately breaking things and recovering.
+Build the backend infrastructure, migrate **Notely's** state into it, then
+practise the state commands — including deliberately breaking things and
+recovering.
+
+Two directories are involved, and the distinction matters:
+
+| Directory | What it is |
+|---|---|
+| `~/terraform-labs/notely-backend` | Creates the S3 bucket and lock table. Uses **local** state. |
+| `~/terraform-labs/notely` | Notely itself. Its state **moves into** that bucket. |
+
+This is the chicken-and-egg problem: the thing that stores state cannot store its
+own state in itself.
 
 ### Step 1: Build the backend infrastructure
 
 ```bash
-mkdir -p ~/terraform-labs/03-state/bootstrap
-cd ~/terraform-labs/03-state/bootstrap
+mkdir -p ~/terraform-labs/notely-backend
+cd ~/terraform-labs/notely-backend
 ```
 
 Create `main.tf`:
@@ -734,7 +775,7 @@ provider "aws" {
 
   default_tags {
     tags = {
-      Project   = "tf-learning"
+      Project   = "notely"
       ManagedBy = "Terraform"
       Ephemeral = "true"
     }
@@ -746,7 +787,7 @@ resource "random_id" "suffix" {
 }
 
 resource "aws_s3_bucket" "state" {
-  bucket = "tf-lab-state-${random_id.suffix.hex}"
+  bucket = "notely-tfstate-${random_id.suffix.hex}"
 }
 
 # Versioning is your undo button for state. Never skip it.
@@ -780,7 +821,7 @@ resource "aws_s3_bucket_public_access_block" "state" {
 
 # The classic locking mechanism. LockID is just a partition key.
 resource "aws_dynamodb_table" "locks" {
-  name         = "tf-lab-locks-${random_id.suffix.hex}"
+  name         = "notely-tf-locks-${random_id.suffix.hex}"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "LockID"
 
@@ -811,76 +852,51 @@ terraform output -raw state_bucket
 terraform output -raw lock_table
 ```
 
-Note that this bootstrap config is itself using **local state**. That is the
+Note that this backend config is itself using **local state**. That is the
 chicken-and-egg problem, and you are about to resolve it.
 
-### Step 2: A project to migrate
+### Step 2: Go back to Notely
+
+You already have a project to migrate — Notely, from Modules 1 and 2.
 
 ```bash
-mkdir -p ~/terraform-labs/03-state/app
-cd ~/terraform-labs/03-state/app
+cd ~/terraform-labs/notely
 ```
 
-Create `main.tf`:
+If you destroyed it at the end of Module 2, re-apply it now:
+
+```bash
+terraform apply
+```
+
+You should have five or six resources: the attachments bucket, its versioning
+config, the random suffix, the VPC, subnet, internet gateway, route table and
+association.
+
+Add one more resource so there is a secret to find later. Put this in
+`main.tf`:
 
 ```hcl
-terraform {
-  required_version = ">= 1.5.0"
-
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-    random = {
-      source  = "hashicorp/random"
-      version = "~> 3.6"
-    }
-  }
-}
-
-provider "aws" {
-  region = "ap-southeast-2"
-
-  default_tags {
-    tags = {
-      Project   = "tf-learning"
-      ManagedBy = "Terraform"
-      Ephemeral = "true"
-    }
-  }
-}
-
-resource "random_id" "suffix" {
-  byte_length = 4
-}
-
-resource "aws_s3_bucket" "app_data" {
-  bucket = "tf-lab-appdata-${random_id.suffix.hex}"
-}
-
-resource "aws_cloudwatch_log_group" "app" {
-  name              = "/tf-lab/app-${random_id.suffix.hex}"
-  retention_in_days = 1
-}
-
-# Deliberately a "secret", to prove a point about state later.
+# Notely's database password. We are not using it yet - the database
+# arrives in Module 10 - but generating it now proves a point about state.
 resource "random_password" "db" {
   length  = 24
   special = true
 }
 
-output "bucket" {
-  value = aws_s3_bucket.app_data.bucket
+# Where the Node.js app will send its logs. Free tier, and we need
+# something small to practise state surgery on later in this lab.
+resource "aws_cloudwatch_log_group" "app" {
+  name              = "/notely/app-${random_id.suffix.hex}"
+  retention_in_days = 1
 }
 ```
 
 ```bash
-terraform init
 terraform apply
 ```
 
-### Step 3: Look at local state, and find the password
+### Step 3: Look at local state, and find Notely's password
 
 ```bash
 ls -la
@@ -903,7 +919,13 @@ terraform state list
 random_id.suffix
 random_password.db
 aws_cloudwatch_log_group.app
-aws_s3_bucket.app_data
+aws_internet_gateway.main
+aws_route_table.public
+aws_route_table_association.public_a
+aws_s3_bucket.attachments
+aws_s3_bucket_versioning.attachments
+aws_subnet.public_a
+aws_vpc.main
 ```
 
 ### Step 4: Migrate to the remote backend
@@ -916,7 +938,7 @@ terraform {
 
   backend "s3" {
     bucket         = "REPLACE-WITH-YOUR-STATE-BUCKET"
-    key            = "lab/app/terraform.tfstate"
+    key            = "notely/dev/terraform.tfstate"
     region         = "ap-southeast-2"
     encrypt        = true
     dynamodb_table = "REPLACE-WITH-YOUR-LOCK-TABLE"
@@ -944,7 +966,7 @@ use this backend unless the backend configuration changes.
 Verify it landed in S3:
 
 ```bash
-aws s3 ls s3://$(cd ../bootstrap && terraform output -raw state_bucket)/lab/app/
+aws s3 ls s3://$(cd ../notely-backend && terraform output -raw state_bucket)/notely/dev/
 ```
 
 And confirm Terraform is reading it:
@@ -953,7 +975,7 @@ And confirm Terraform is reading it:
 terraform state list
 ```
 
-Same four resources, now from S3.
+The same resources, now read from S3.
 
 ```bash
 terraform plan
@@ -1031,7 +1053,7 @@ terraform state list
 Three resources now. But:
 
 ```bash
-aws logs describe-log-groups --log-group-name-prefix /tf-lab/
+aws logs describe-log-groups --log-group-name-prefix /notely/
 ```
 
 The log group still exists — Terraform just forgot it.
@@ -1047,7 +1069,7 @@ it.
 Fix by importing it back:
 
 ```bash
-terraform import aws_cloudwatch_log_group.app /tf-lab/app-<YOUR_SUFFIX>
+terraform import aws_cloudwatch_log_group.app /notely/app-<YOUR_SUFFIX>
 ```
 
 Get the exact name from the `describe-log-groups` output.
@@ -1064,7 +1086,7 @@ Change something outside Terraform:
 
 ```bash
 aws logs put-retention-policy \
-  --log-group-name /tf-lab/app-<YOUR_SUFFIX> \
+  --log-group-name /notely/app-<YOUR_SUFFIX> \
   --retention-in-days 7
 ```
 
@@ -1093,10 +1115,10 @@ terraform apply
 ### Step 9: State versioning as an undo button
 
 ```bash
-BUCKET=$(cd ../bootstrap && terraform output -raw state_bucket)
+BUCKET=$(cd ../notely-backend && terraform output -raw state_bucket)
 aws s3api list-object-versions \
   --bucket $BUCKET \
-  --prefix lab/app/terraform.tfstate \
+  --prefix notely/dev/terraform.tfstate \
   --query 'Versions[].[VersionId,LastModified]' \
   --output table
 ```
@@ -1107,10 +1129,10 @@ back.
 
 ### Step 10: Tear down, in the right order
 
-The app stack first, because its state lives in the bootstrap stack's bucket:
+Notely first, because its state lives in the backend stack's bucket:
 
 ```bash
-cd ~/terraform-labs/03-state/app
+cd ~/terraform-labs/notely
 terraform destroy
 ```
 
@@ -1118,16 +1140,16 @@ Then move its state back to local so the bucket can be emptied — or simply emp
 the bucket by hand:
 
 ```bash
-BUCKET=$(cd ../bootstrap && terraform output -raw state_bucket)
+BUCKET=$(cd ../notely-backend && terraform output -raw state_bucket)
 aws s3api delete-objects --bucket $BUCKET \
   --delete "$(aws s3api list-object-versions --bucket $BUCKET \
     --query '{Objects: Versions[].{Key:Key,VersionId:VersionId}}' --output json)"
 ```
 
-Then the bootstrap stack:
+Then the backend stack:
 
 ```bash
-cd ~/terraform-labs/03-state/bootstrap
+cd ~/terraform-labs/notely-backend
 terraform destroy
 ```
 
@@ -1135,7 +1157,7 @@ Verify nothing is left:
 
 ```bash
 aws resourcegroupstaggingapi get-resources \
-  --tag-filters Key=Project,Values=tf-learning \
+  --tag-filters Key=Project,Values=notely \
   --query 'ResourceTagMappingList[].ResourceARN' --output text
 ```
 

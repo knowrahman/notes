@@ -1,5 +1,30 @@
 # Module 2 — HCL & the Core Workflow
 
+## Where Notely is right now
+
+```text
+  Notely so far:
+
+    S3 bucket  (attachments)      <- built in Module 1
+
+  Everything else: not built yet.
+```
+
+By the end of this module Notely has a network:
+
+```text
+    S3 bucket  (attachments)
+    VPC 10.0.0.0/16               <- new
+      +- public subnet 10.0.1.0/24  <- new
+      +- internet gateway           <- new
+      +- route table                <- new
+```
+
+All four new pieces are **free**. Full picture: `notely-architecture.md`.
+Networking words unfamiliar? `00-aws-networking-primer.md`.
+
+---
+
 ## Why this module exists
 
 In Module 1 you ran `init`, `plan`, `apply` and `destroy`, and you copied some
@@ -53,8 +78,9 @@ Because the subnet needs `aws_vpc.main.id`, and that value does not exist until
 the VPC is created, Terraform *derives* that the VPC must come first. Order is a
 consequence of data flow, not a declaration.
 
-This is closer to how a build system like Make or MSBuild works than to a CI
-pipeline: you declare what depends on what, and the tool schedules it.
+This is closer to how npm resolves a dependency tree than to a CI pipeline. You
+never tell npm which package to install first. It reads what depends on what and
+works out the order itself. Terraform does the same thing with cloud resources.
 
 ---
 
@@ -821,6 +847,239 @@ graph orders anything.
 
 ---
 
+## Building it into Notely
+
+Time to put Module 0's drawing into code.
+
+We are building the bottom-left corner of Notely's network: a VPC, one public
+subnet, an internet gateway, and a route table that ties them together.
+
+```text
+                    Internet
+                        |
+              +------------------+
+              | Internet Gateway |
+              +------------------+
+                        |
+    +---------------------------------------+
+    |          VPC  10.0.0.0/16             |
+    |                                       |
+    |   PUBLIC subnet  10.0.1.0/24          |
+    |   route: 0.0.0.0/0 -> igw             |
+    |                                       |
+    +---------------------------------------+
+```
+
+**Cost: free.** VPCs, subnets, internet gateways and route tables cost nothing.
+You are only charged for things that run inside them.
+
+### The code
+
+Add this to your `~/terraform-labs/notely` directory as `network.tf`:
+
+```hcl
+# ---------------------------------------------------------------
+# The VPC - Notely's own private network inside AWS.
+# 10.0.0.0/16 gives us 65,536 addresses to divide up.
+# ---------------------------------------------------------------
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
+
+  # Lets AWS give resources internal DNS names like
+  # ip-10-0-1-42.ap-southeast-2.compute.internal
+  enable_dns_support   = true
+  enable_dns_hostnames = true
+
+  tags = {
+    Name = "notely-vpc"
+  }
+}
+
+# ---------------------------------------------------------------
+# A public subnet in availability zone a.
+# 10.0.1.0/24 = 256 addresses, of which AWS reserves 5.
+# ---------------------------------------------------------------
+resource "aws_subnet" "public_a" {
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.0.1.0/24"
+  availability_zone = "ap-southeast-2a"
+
+  # Anything launched here gets a public IP automatically.
+  map_public_ip_on_launch = true
+
+  tags = {
+    Name = "notely-public-a"
+  }
+}
+
+# ---------------------------------------------------------------
+# The internet gateway - the door between the VPC and the world.
+# Attaching it does nothing on its own. A route table has to
+# point at it, which is what we do next.
+# ---------------------------------------------------------------
+resource "aws_internet_gateway" "main" {
+  vpc_id = aws_vpc.main.id
+
+  tags = {
+    Name = "notely-igw"
+  }
+}
+
+# ---------------------------------------------------------------
+# The route table. THIS is what makes the subnet public.
+#
+# The "local" route for 10.0.0.0/16 is added automatically and
+# cannot be removed - it is what lets everything inside the VPC
+# talk to everything else inside the VPC.
+#
+# The 0.0.0.0/0 route below is the one we add: "for any other
+# destination, go out through the internet gateway."
+# ---------------------------------------------------------------
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.main.id
+  }
+
+  tags = {
+    Name = "notely-public-rt"
+  }
+}
+
+# ---------------------------------------------------------------
+# A route table does nothing until a subnet is associated with it.
+# This is the line that finally makes public_a actually public.
+# ---------------------------------------------------------------
+resource "aws_route_table_association" "public_a" {
+  subnet_id      = aws_subnet.public_a.id
+  route_table_id = aws_route_table.public.id
+}
+```
+
+And add some outputs to `outputs.tf`:
+
+```hcl
+output "vpc_id" {
+  description = "Notely's VPC id"
+  value       = aws_vpc.main.id
+}
+
+output "public_subnet_a_id" {
+  description = "The public subnet in AZ a"
+  value       = aws_subnet.public_a.id
+}
+```
+
+### Run it
+
+```bash
+terraform fmt
+terraform validate
+terraform plan
+```
+
+You should see `Plan: 5 to add` — VPC, subnet, internet gateway, route table,
+and the association.
+
+```bash
+terraform apply
+```
+
+### Look at the dependency graph you just wrote
+
+You never told Terraform what order to build these in. Trace the references:
+
+| Resource | References | So it must wait for |
+|---|---|---|
+| `aws_vpc.main` | nothing | — it goes first |
+| `aws_subnet.public_a` | `aws_vpc.main.id` | the VPC |
+| `aws_internet_gateway.main` | `aws_vpc.main.id` | the VPC |
+| `aws_route_table.public` | `aws_vpc.main.id`, `aws_internet_gateway.main.id` | the VPC and the IGW |
+| `aws_route_table_association.public_a` | subnet id, route table id | both of those |
+
+```text
+              aws_vpc.main
+             /      |      \
+            /       |       \
+   subnet.public_a  |   internet_gateway.main
+            |       |        /
+            |  route_table.public
+            |          |
+            +----------+
+                  |
+        route_table_association.public_a
+```
+
+The subnet and the internet gateway have no relationship to each other, so
+Terraform creates them **at the same time**. Watch the apply output — you will
+see them start together.
+
+### Prove the route table is what matters
+
+This is the Module 0 lesson, demonstrated.
+
+Comment out the `route` block inside `aws_route_table.public`:
+
+```hcl
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
+
+  # route {
+  #   cidr_block = "0.0.0.0/0"
+  #   gateway_id = aws_internet_gateway.main.id
+  # }
+
+  tags = {
+    Name = "notely-public-rt"
+  }
+}
+```
+
+```bash
+terraform plan
+```
+
+```text
+  ~ resource "aws_route_table" "public" {
+      ~ route = [
+          - {
+              - cidr_block = "0.0.0.0/0"
+              - gateway_id = "igw-0abc123"
+            },
+        ]
+    }
+```
+
+That one removed row is the entire difference between a public subnet and a
+private one. Nothing else about the subnet changes at all.
+
+Put the route back and re-apply.
+
+### Verify it in AWS
+
+```bash
+aws ec2 describe-vpcs \
+  --filters "Name=tag:Name,Values=notely-vpc" \
+  --query 'Vpcs[0].{Id:VpcId,Cidr:CidrBlock}' --output table
+
+aws ec2 describe-route-tables \
+  --filters "Name=tag:Name,Values=notely-public-rt" \
+  --query 'RouteTables[0].Routes' --output table
+```
+
+The second command shows both routes: the automatic `local` one for
+`10.0.0.0/16`, and yours for `0.0.0.0/0`.
+
+### Leave it running
+
+Unlike most labs, **do not destroy this one yet** — it costs nothing, and
+Module 3 uses it. If you would rather start clean each time, `terraform destroy`
+is safe; you can paste the file back.
+
+---
+
 ## Hands-On Lab — HCL Without a Cloud Account
 
 **Cost: free. No AWS account required.** This lab uses only the `local`,
@@ -1325,5 +1584,6 @@ every confusing Terraform error a beginner hits — resources recreated for no
 reason, "resource already exists", two people overwriting each other — traces
 back to a state misunderstanding.
 
-Module 3's lab migrates a project from local state to a proper S3 backend with
-DynamoDB locking, which is the setup every real team uses.
+Module 3's lab moves **Notely's** state out of the file on your laptop and into
+an S3 bucket with locking — the setup every real team uses, and the thing that
+makes it possible for a second person to work on Notely at all.
