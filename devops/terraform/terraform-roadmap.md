@@ -5,7 +5,51 @@ This is the study plan for learning Terraform from zero to production-capable.
 Every module has its own file in this folder. Work through them in order — the
 numbering is the study order. Tick the boxes as you go.
 
-> You already know AWS well. Terraform is not a new cloud — it is a new way to *describe* the cloud you already understand.
+> Terraform is not a new cloud. It is a new way to *describe* the cloud.
+
+---
+
+## One example, built up module by module
+
+The whole course builds a single system: **Notely**, a Node.js note-taking API.
+
+```text
+                    Internet
+                        |
+                    Route 53          notely.example.com
+                        |
+            Application Load Balancer          public subnets
+                  /            \
+           EC2 server      EC2 server          private subnets
+           Node.js API     Node.js API
+                  \            /
+              RDS PostgreSQL database          private subnets
+
+     S3 (attachments) · CloudWatch Logs · SNS alerts · Secrets Manager
+```
+
+Each module adds one more piece. Nothing is thrown away — Notely only grows.
+
+| Module | What happens to Notely |
+|---|---|
+| **0** | Draw the network on paper. No Terraform yet. |
+| **1** | The S3 attachments bucket |
+| **2** | VPC, a subnet, internet gateway, route table |
+| **3** | Its state moves into S3 with locking |
+| **4** | Every hardcoded value becomes a variable |
+| **5** | Security groups, computed CIDRs, the server startup script |
+| **6** | Six subnets across two AZs, the load balancer, two servers |
+| **7** | Stop hardcoding AMI IDs and AZ names |
+| **8** | Reorganised into reusable modules |
+| **9** | Three environments: dev, staging, prod |
+| **10** | The database, with its password in Secrets Manager |
+| **11** | Tests and security scanners over all of it |
+| **12** | A pipeline that plans on review and applies on approval |
+| **13** | Adopt a bucket somebody created by hand |
+| **14** | Route 53, alarms, SNS — and the whole thing runs |
+
+Full details, the network layout, and what each piece costs:
+**`notely-architecture.md`**
 
 ---
 
@@ -13,17 +57,34 @@ numbering is the study order. Tick the boxes as you go.
 
 You are a backend developer who:
 
-- Knows AWS at DVA-C02 depth (IAM, VPC, EC2, S3, RDS, Lambda, CloudFormation) — see `../../cloud/AWS/README.md`
-- Has used Docker and understands images vs containers — see `../docker/docker-notes.md`
-- Has built CI/CD pipelines in GitLab CI and GitHub Actions — see `../CI_CD/Gitlab-CICD.md` and `../CI_CD/CI_CD.md`
-- Has used the Serverless Framework, so has met declarative infra before — see `../../cloud/aws serverless/serverless-framework.md`
+- Writes JavaScript and Node.js — see `../../backend/nodejs/node-js.md`
+- Has used Docker — see `../docker/docker-notes.md`
+- Has built CI/CD pipelines in GitLab CI and GitHub Actions — see
+  `../CI_CD/Gitlab-CICD.md` and `../CI_CD/CI_CD.md`
+- Knows some AWS — see `../../cloud/AWS/README.md`
 - Has **never** used Terraform
+- Is **not** confident about VPCs, subnets and how they wire together
 
-That background matters. Roughly half of learning Terraform is learning the
-cloud resources it manages, and you have already done that half. What is left is
-the tool: its language, its state model, and its workflow.
+That last point is why there is a **Module 0**. It explains AWS networking from
+zero — IP addresses, CIDR, subnets, route tables, security groups — before any
+Terraform appears. Everything after it assumes you have read it.
 
----
+Terraform will also feel familiar in places, because it borrows patterns you
+already use:
+
+| Terraform | Node.js |
+|---|---|
+| `terraform init` | `npm install` |
+| `.terraform/` | `node_modules/` |
+| `.terraform.lock.hcl` | `package-lock.json` |
+| `required_providers` | `dependencies` in `package.json` |
+| `~> 5.0` | `^5.0.0` |
+| The state file | A migrations history table |
+| A module | An npm package |
+| `variable` | A function parameter |
+| `output` | `module.exports` |
+| `for` expressions | `.map()` and `.filter()` |
+| `object({...})` | A TypeScript interface |
 
 ## Prerequisites before Module 1
 
@@ -117,6 +178,50 @@ aws budgets create-budget \
 
 Add an email notification to it in the console. Five dollars is a generous
 ceiling for everything in this curriculum except the final capstone.
+
+---
+
+**SECTION 0: AWS Networking, From Zero**
+
+Module file: `00-aws-networking-primer.md`
+
+Not Terraform. The foundation everything else assumes. Read this first.
+
+1.  IP addresses and CIDR, explained from nothing
+
+    - [ ] What an IP address actually is
+    - [ ] Private address ranges, and why VPCs use `10.0.0.0/16`
+    - [ ] What `/16`, `/24` and `/32` mean
+    - [ ] `0.0.0.0/0` — and why it is fine in a route table but dangerous on port 22
+
+2.  Regions and Availability Zones
+
+    - [ ] Region = a city, AZ = a building in it
+    - [ ] Why one AZ is a demo and two is a system
+
+3.  The VPC and its subnets
+
+    - [ ] What a VPC is, and why it is just a private network
+    - [ ] What a subnet is, and why it lives in exactly one AZ
+    - [ ] Public vs private — and why the only difference is one route table row
+
+4.  Getting traffic in and out
+
+    - [ ] Internet gateways
+    - [ ] Route tables, and reading one properly
+    - [ ] NAT gateways, and why they cost $32/month
+    - [ ] VPC gateway endpoints, the free alternative
+
+5.  Firewalls
+
+    - [ ] Security groups: stateful, allow-only, attached to resources
+    - [ ] Referencing a security group instead of an IP range
+    - [ ] NACLs, and why you can mostly ignore them
+
+6.  Putting it together
+
+    - [ ] Trace one request through all sixteen hops
+    - [ ] Draw Notely's complete network
 
 ---
 
@@ -399,7 +504,7 @@ Module file: `14-real-world-project.md`
 
 | Week | Modules | Focus |
 |---|---|---|
-| 1 | 1–2 | Get comfortable typing HCL and reading plans |
+| 1 | 0–2 | Networking foundations, then HCL and reading plans |
 | 2 | 3 | State — do not rush this one, it explains most later confusion |
 | 3 | 4–5 | The language: variables and expressions |
 | 4 | 6–7 | Meta-arguments and data sources |
@@ -432,6 +537,7 @@ Slower is fine. Module 3 is the one that pays for itself.
 
 ## Progress
 
+- [ ] Module 0 — AWS Networking, From Zero
 - [ ] Module 1 — IaC & Terraform Basics
 - [ ] Module 2 — HCL & the Core Workflow
 - [ ] Module 3 — Terraform State
@@ -445,4 +551,28 @@ Slower is fine. Module 3 is the one that pays for itself.
 - [ ] Module 11 — Testing & Validation
 - [ ] Module 12 — Terraform in CI/CD
 - [ ] Module 13 — Importing Existing Infrastructure & Drift
-- [ ] Module 14 — Real-World Project Structure & Best Practices
+- [ ] Module 14 — The Complete Build
+
+---
+
+## Files in this folder
+
+| File | What it is |
+|---|---|
+| `terraform-roadmap.md` | This file. The plan and progress tracker. |
+| `notely-architecture.md` | The running example: diagrams, components, costs |
+| `00-aws-networking-primer.md` | VPC, subnets and routing from zero |
+| `01-iac-and-terraform-basics.md` | Why IaC, providers, the four commands |
+| `02-hcl-and-core-workflow.md` | HCL syntax, the dependency graph, reading plans |
+| `03-terraform-state.md` | State, backends, locking, drift |
+| `04-variables-outputs-locals.md` | Inputs, outputs, computed values |
+| `05-expressions-and-functions.md` | `for` expressions, functions, templates |
+| `06-meta-arguments.md` | `count`, `for_each`, `lifecycle`, providers |
+| `07-data-sources.md` | Looking things up instead of hardcoding them |
+| `08-modules.md` | Writing and using reusable modules |
+| `09-environments-and-layout.md` | dev / staging / prod, project structure |
+| `10-secrets-and-auth.md` | Credentials, Secrets Manager, the database |
+| `11-testing-and-validation.md` | fmt, validate, tflint, checkov, `terraform test` |
+| `12-terraform-in-cicd.md` | Pipelines for GitLab CI and GitHub Actions |
+| `13-import-and-drift.md` | Adopting existing infrastructure, `moved`, `removed` |
+| `14-real-world-project.md` | The capstone, and running it in production |
