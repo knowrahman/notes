@@ -249,4 +249,4 @@ working infrastructure project you can reuse at work.
 | 13 — Import & drift | `13-import-and-drift.md` |
 | 14 — The complete build | `14-real-world-project.md` |
 
-Roadmap and progress tracker: `terraform-roadmap.md`
+Roadmap and progress tracker: `README.md`

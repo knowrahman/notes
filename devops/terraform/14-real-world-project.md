@@ -1437,5 +1437,5 @@ infrastructure engineer does day to day.
 
 ---
 
-Roadmap and progress tracker: `terraform-roadmap.md`
+Roadmap and progress tracker: `README.md`
 Running example: `notely-architecture.md`

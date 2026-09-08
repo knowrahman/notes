@@ -559,7 +559,7 @@ Slower is fine. Module 3 is the one that pays for itself.
 
 | File | What it is |
 |---|---|
-| `terraform-roadmap.md` | This file. The plan and progress tracker. |
+| `README.md` | This file. The plan and progress tracker. |
 | `notely-architecture.md` | The running example: diagrams, components, costs |
 | `00-aws-networking-primer.md` | VPC, subnets and routing from zero |
 | `01-iac-and-terraform-basics.md` | Why IaC, providers, the four commands |
