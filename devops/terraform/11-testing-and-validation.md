@@ -355,6 +355,60 @@ Success! 1 passed, 0 failed.
 **`command = plan` is the default and what you want almost always.** It creates
 nothing, costs nothing, and runs in seconds.
 
+### Check the attribute shape before you assert on it
+
+One practical warning, because it will cost you time otherwise.
+
+Whether an attribute is a **single object** or a **list** depends on the
+provider's schema, and it is not always obvious from the documentation. Blocks
+declared with `MaxItems: 1` are usually exposed as a one-element list, so you
+reach into them with `[0]` or iterate them — but this varies between resources
+and between provider versions.
+
+Get it wrong and you see:
+
+```text
+Error: Unsupported attribute
+This value does not have any attributes.
+```
+
+or
+
+```text
+Error: Iteration over non-iterable value
+```
+
+Neither message tells you the right form.
+
+**Check before you guess.** Apply the resource once in a scratch directory, then:
+
+```bash
+terraform state show aws_s3_bucket_versioning.attachments
+```
+
+or explore it interactively:
+
+```bash
+terraform console
+```
+
+```text
+> aws_s3_bucket_versioning.attachments.versioning_configuration
+> type(aws_s3_bucket_versioning.attachments.versioning_configuration)
+```
+
+`type()` tells you exactly what you are dealing with — `object`, `list`, `set` —
+and therefore whether you need `[0]`, a `for` expression, or a direct attribute
+reference.
+
+The assertions in this module are written for the AWS provider 5.x schema. If
+one errors on your version, this is why, and the two commands above are how you
+find the correct form in about thirty seconds.
+
+> Writing an assertion is easy. Knowing the shape of the thing you are asserting on is the actual skill.
+
+---
+
 ### Testing that validation works
 
 This is where `expect_failures` earns its place:
@@ -1045,6 +1099,12 @@ security review.
 **9. Leaving `terraform test` out of CI.**
 
 A test suite that only runs locally does not run.
+
+**10. Guessing whether an attribute is a list or an object.**
+
+`Error: Unsupported attribute` and `Error: Iteration over non-iterable value`
+both mean you guessed wrong. Use `terraform console` and `type()` to check,
+rather than trying `[0]` and seeing what happens.
 
 ---
 
