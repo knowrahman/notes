@@ -589,10 +589,23 @@ configured. The job pauses until someone approves. That is the manual gate.
 Both pipelines above use OIDC. Here is the Terraform that sets it up.
 
 ```hcl
-# The OIDC provider - one per account, not per repository
+# The OIDC provider - one per account, not per repository.
+#
+# About that thumbprint: you will see this exact value copied across
+# hundreds of blog posts. For GitHub, AWS now validates the provider
+# against its own trusted certificate store and does not rely on the
+# thumbprint you supply. That matters because GitHub has rotated its
+# certificates before, and people whose pipelines "depended" on a
+# hardcoded thumbprint panicked when it went stale.
+#
+# So: supply it if the provider asks for a non-empty list, and do not
+# treat it as something you need to keep up to date. Check the current
+# aws_iam_openid_connect_provider docs - recent provider versions have
+# made thumbprint_list optional for exactly this reason.
 resource "aws_iam_openid_connect_provider" "github" {
-  url             = "https://token.actions.githubusercontent.com"
-  client_id_list  = ["sts.amazonaws.com"]
+  url            = "https://token.actions.githubusercontent.com"
+  client_id_list = ["sts.amazonaws.com"]
+
   thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1"]
 }
 
@@ -941,6 +954,12 @@ The pipeline goes green without anyone approving. The gate does nothing.
 
 Production deserves a human.
 
+**12. Treating the OIDC thumbprint as something to maintain.**
+
+For GitHub, AWS validates against its own certificate store. Chasing a
+"correct" thumbprint after a certificate rotation is wasted effort — see the
+note in Part 5.
+
 ---
 
 ## Hands-On Lab — A Pipeline for Notely
@@ -1089,8 +1108,10 @@ If you have a GitHub repository for this:
 ```hcl
 # In a scratch directory - IAM is free
 resource "aws_iam_openid_connect_provider" "github" {
-  url             = "https://token.actions.githubusercontent.com"
-  client_id_list  = ["sts.amazonaws.com"]
+  url            = "https://token.actions.githubusercontent.com"
+  client_id_list = ["sts.amazonaws.com"]
+
+  # See the note in Part 5 - this value is effectively legacy for GitHub.
   thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1"]
 }
 ```
