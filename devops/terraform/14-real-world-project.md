@@ -315,7 +315,15 @@ resource "aws_budgets_budget" "monthly" {
 
   cost_filter {
     name   = "TagKeyValue"
-    values = ["user:Project$${var.project_name}"]
+    # AWS wants the literal form "user:<TagKey>$<TagValue>".
+    #
+    # Do NOT write "user:Project$${var.project_name}" - in HCL, $${ is the
+    # escape for a literal ${, so that renders as the text
+    # user:Project${var.project_name} and the filter matches nothing.
+    #
+    # format() avoids the ambiguity: the $ is followed by % rather than {,
+    # so it stays a literal dollar sign.
+    values = [format("user:Project$%s", var.project_name)]
   }
 
   notification {
@@ -335,8 +343,15 @@ expected.
 Note `treat_missing_data = "notBreaching"` — without it, an alarm with no data
 goes to `INSUFFICIENT_DATA` and can fire spuriously.
 
-And `$${var.project_name}` in the budget filter — the `$$` escapes it so AWS
-receives a literal `$` in the tag filter syntax.
+And note the budget's `cost_filter`. AWS wants the literal form
+`user:Project$notely`, and getting a literal `$` immediately before an
+interpolation is genuinely awkward in HCL — `$${` is the escape for a literal
+`${`, so the obvious-looking `"user:Project$${var.project_name}"` produces the
+text `user:Project${var.project_name}` and silently matches nothing. Using
+`format()` sidesteps it, because there the `$` is followed by `%` rather than
+`{`.
+
+> A budget that matches nothing never fires, and you find out from the bill. Check the filter resolves before you rely on it.
 
 ### The complete `modules/notely`
 
@@ -642,7 +657,15 @@ resource "aws_budgets_budget" "project" {
 
   cost_filter {
     name   = "TagKeyValue"
-    values = ["user:Project$${var.project_name}"]
+    # AWS wants the literal form "user:<TagKey>$<TagValue>".
+    #
+    # Do NOT write "user:Project$${var.project_name}" - in HCL, $${ is the
+    # escape for a literal ${, so that renders as the text
+    # user:Project${var.project_name} and the filter matches nothing.
+    #
+    # format() avoids the ambiguity: the $ is followed by % rather than {,
+    # so it stays a literal dollar sign.
+    values = [format("user:Project$%s", var.project_name)]
   }
 }
 ```
